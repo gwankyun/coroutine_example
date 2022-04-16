@@ -205,7 +205,7 @@ lite::task server_coro(std::shared_ptr<asio::ip::tcp::socket> _socket)
 ```
 正如上面所說的，`server_coro`的返回值是`task`。
 
-然後用智能指針創建一個協程句柄`handle`，用於保存`awaiter::await_suspend`獲得的句輛，以便後續操作。
+然後用智能指針創建一個協程句柄`handle`，用於保存`awaiter::await_suspend`獲得的句柄，以便後續操作。
 
 原先的回調調用都放在`co_await lite::await(...)`語句中，`vec`和`str`這些數據現在可以直接在棧上創建，回調裡面有一句`handle->resume();`十分關鍵，調用之後這個`co_await`語句會立即返回到調用處，達到恢復執行的效果。
 
