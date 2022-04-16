@@ -43,10 +43,12 @@ lite::task server_coro(std::shared_ptr<asio::ip::tcp::socket> _socket)
     std::size_t bytes;
 
     std::vector<char> vec(1024, '\0');
-    co_await lite::await(*handle,
+    co_await lite::await(
+        *handle,
         [handle, &socket, &error, &bytes, &vec]()
         {
-            socket.async_read_some(asio::buffer(vec.data(), vec.size()),
+            socket.async_read_some(
+                asio::buffer(vec.data(), vec.size()),
                 [handle, &error, &bytes](error_code_t _error, std::size_t _bytes)
                 {
                     error = _error;
@@ -63,10 +65,12 @@ lite::task server_coro(std::shared_ptr<asio::ip::tcp::socket> _socket)
     SPDLOG_INFO(vec.data());
 
     std::string str{ "server." };
-    co_await lite::await(*handle,
+    co_await lite::await(
+        *handle,
         [handle, &socket, &error, &bytes, &str]()
         {
-            socket.async_write_some(asio::buffer(str.c_str(), str.size()),
+            socket.async_write_some(
+                asio::buffer(str.c_str(), str.size()),
                 [handle, &error, &bytes](error_code_t _error, std::size_t _bytes)
                 {
                     error = _error;
