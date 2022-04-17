@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.23)
 
 # 項目名
-set(project coroutine)
+set(project coroutine_example)
 project(${project})
 
 # 啟用IDE目錄功能
