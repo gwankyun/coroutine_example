@@ -99,7 +99,8 @@ namespace lite
             *_handle,
             [_handle, &_socket, _buffer](result_t& _result)
             {
-                _socket.async_read_some(_buffer,
+                _socket.async_read_some(
+                    _buffer,
                     [_handle, &_result](error_code_t _error, std::size_t _bytes)
                     {
                         _result = std::make_tuple(_error, _bytes);
@@ -118,7 +119,8 @@ namespace lite
             *_handle,
             [_handle, &_socket, _buffer](result_t& _result)
             {
-                _socket.async_write_some(_buffer,
+                _socket.async_write_some(
+                    _buffer,
                     [_handle, &_result](error_code_t _error, std::size_t _bytes)
                     {
                         _result = std::make_tuple(_error, _bytes);

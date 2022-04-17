@@ -93,7 +93,8 @@ lite::task server_coro_value(std::shared_ptr<asio::ip::tcp::socket> _socket)
     auto handle = std::make_shared<std::coroutine_handle<>>(); // ÓÃì¶±£´æ…f³Ì¾ä±ú
 
     std::vector<char> vec(1024, '\0');
-    auto [error_r, bytes_r] = co_await lite::async_read(handle, socket, asio::buffer(vec.data(), vec.size()));
+    auto [error_r, bytes_r] = co_await lite::async_read(
+        handle, socket, asio::buffer(vec.data(), vec.size()));
     if (error_r)
     {
         SPDLOG_INFO(error_r.message());
@@ -103,7 +104,8 @@ lite::task server_coro_value(std::shared_ptr<asio::ip::tcp::socket> _socket)
     SPDLOG_INFO(vec.data());
 
     std::string str{ "server." };
-    auto [error_w, bytes_w] = co_await lite::async_write(handle, socket, asio::buffer(str.c_str(), str.size()));
+    auto [error_w, bytes_w] = co_await lite::async_write(
+        handle, socket, asio::buffer(str.c_str(), str.size()));
     if (error_w)
     {
         SPDLOG_INFO(error_w.message());
