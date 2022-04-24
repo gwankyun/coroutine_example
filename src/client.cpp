@@ -35,7 +35,8 @@ void client_callback(std::shared_ptr<asio::ip::tcp::socket> _socket)
 lite::task client_coro(std::shared_ptr<asio::ip::tcp::socket> _socket)
 {
     auto& socket = *_socket;
-    std::coroutine_handle<lite::task::promise_type> handle; // 用於保存協程句柄
+    using promise_type = lite::task::promise_type;
+    std::coroutine_handle<promise_type> handle; // 用於保存協程句柄
 
     error_code_t error;
     std::size_t bytes;
@@ -86,7 +87,8 @@ lite::task client_coro(std::shared_ptr<asio::ip::tcp::socket> _socket)
 lite::task client_coro_value(std::shared_ptr<asio::ip::tcp::socket> _socket)
 {
     auto& socket = *_socket;
-    std::coroutine_handle<lite::task::promise_type> handle; // 用於保存協程句柄
+    using promise_type = lite::task::promise_type;
+    std::coroutine_handle<promise_type> handle; // 用於保存協程句柄
 
     std::string str{ "client." };
     auto [error_w, bytes_w] = co_await lite::async_write(
@@ -114,7 +116,8 @@ lite::task client_coro_value(std::shared_ptr<asio::ip::tcp::socket> _socket)
 lite::task_value<error_code_t> client_coro_return_value(std::shared_ptr<asio::ip::tcp::socket> _socket)
 {
     auto& socket = *_socket;
-    std::coroutine_handle<lite::task_value<error_code_t>::promise_type> handle; // 用於保存協程句柄
+    using promise_type = lite::task_value<error_code_t>::promise_type;
+    std::coroutine_handle<promise_type> handle; // 用於保存協程句柄
 
     error_code_t error;
 

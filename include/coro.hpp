@@ -7,7 +7,8 @@
 #define BOOST_ASIO_NO_DEPRECATED 1
 #include <boost/asio.hpp>
 #include <boost/system.hpp>
-#include <coroutine> // ÒýÈë…f³Ì
+#include <coroutine> // std::coroutine_handle
+#include <concepts> // std::invocable
 
 #ifndef SPDLOG_EXISTS
 #  define SPDLOG_EXISTS 0
@@ -44,7 +45,7 @@ namespace lite
     };
 
     template<typename P, typename F>
-        requires requires (F _f, std::coroutine_handle<P> _handle) { _f(_handle); }
+        requires std::invocable<F, std::coroutine_handle<P>&>
     struct awaiter
     {
         awaiter(F _f) : f(_f) {}
@@ -57,8 +58,7 @@ namespace lite
         F f;
     };
 
-    template<typename P, typename F>
-        requires requires (F _f) { _f(); }
+    template<typename P, std::invocable F>
     inline auto await(std::coroutine_handle<P>& _handle, F _f)
     {
         auto fn = [&_handle, _f](std::coroutine_handle<P>& _hdl)
@@ -70,7 +70,7 @@ namespace lite
     }
 
     template<typename P, typename T, typename F>
-        requires requires (F _f, std::coroutine_handle<P> _handle, T& _value) { _f(_handle, _value); }
+        requires std::invocable<F, std::coroutine_handle<P>&, T&>
     struct awaiter_value
     {
         awaiter_value(F _f) : f(_f) {}
@@ -85,7 +85,7 @@ namespace lite
     };
 
     template<typename P, typename T, typename F>
-        requires requires (F _f, T& _value) { _f(_value); }
+        requires std::invocable<F, T&>
     inline auto await_value(std::coroutine_handle<P>& _handle, F _f)
     {
         auto fn = [&_handle, _f](std::coroutine_handle<P>& _hdl, T& _value)
