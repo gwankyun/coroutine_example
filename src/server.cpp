@@ -37,7 +37,8 @@ void server_callback(std::shared_ptr<asio::ip::tcp::socket> _socket)
 lite::task server_coro(std::shared_ptr<asio::ip::tcp::socket> _socket)
 {
     auto& socket = *_socket;
-    std::coroutine_handle<lite::task::promise_type> handle; // 用於保存協程句柄
+    using promise_type = lite::task::promise_type;
+    std::coroutine_handle<promise_type> handle; // 用於保存協程句柄
 
     error_code_t error;
     std::size_t bytes;
@@ -45,7 +46,7 @@ lite::task server_coro(std::shared_ptr<asio::ip::tcp::socket> _socket)
     std::vector<char> vec(1024, '\0');
     co_await lite::await(
         handle,
-        [&handle, &socket, &error, &bytes, &vec]()
+        [&handle, &socket, &error, &bytes, &vec]
         {
             socket.async_read_some(
                 asio::buffer(vec.data(), vec.size()),
@@ -67,7 +68,7 @@ lite::task server_coro(std::shared_ptr<asio::ip::tcp::socket> _socket)
     std::string str{ "server." };
     co_await lite::await(
         handle,
-        [&handle, &socket, &error, &bytes, &str]()
+        [&handle, &socket, &error, &bytes, &str]
         {
             socket.async_write_some(
                 asio::buffer(str.c_str(), str.size()),
@@ -90,7 +91,8 @@ lite::task server_coro(std::shared_ptr<asio::ip::tcp::socket> _socket)
 lite::task server_coro_value(std::shared_ptr<asio::ip::tcp::socket> _socket)
 {
     auto& socket = *_socket;
-    std::coroutine_handle<lite::task::promise_type> handle; // 用於保存協程句柄
+    using promise_type = lite::task::promise_type;
+    std::coroutine_handle<promise_type> handle; // 用於保存協程句柄
 
     std::vector<char> vec(1024, '\0');
     auto [error_r, bytes_r] = co_await lite::async_read(
@@ -118,7 +120,8 @@ lite::task server_coro_value(std::shared_ptr<asio::ip::tcp::socket> _socket)
 lite::task_value<error_code_t> server_coro_return_value(std::shared_ptr<asio::ip::tcp::socket> _socket)
 {
     auto& socket = *_socket;
-    std::coroutine_handle<lite::task_value<error_code_t>::promise_type> handle; // 用於保存協程句柄
+    using promise_type = lite::task_value<error_code_t>::promise_type;
+    std::coroutine_handle<promise_type> handle; // 用於保存協程句柄
 
     error_code_t error;
 

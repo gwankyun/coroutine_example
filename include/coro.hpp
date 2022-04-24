@@ -2,6 +2,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <type_traits>
 #include <tuple>
 #define BOOST_ASIO_NO_DEPRECATED 1
 #include <boost/asio.hpp>
@@ -43,6 +44,7 @@ namespace lite
     };
 
     template<typename P, typename F>
+        requires requires (F _f, std::coroutine_handle<P> _handle) { _f(_handle); }
     struct awaiter
     {
         awaiter(F _f) : f(_f) {}
@@ -56,6 +58,7 @@ namespace lite
     };
 
     template<typename P, typename F>
+        requires requires (F _f) { _f(); }
     inline auto await(std::coroutine_handle<P>& _handle, F _f)
     {
         auto fn = [&_handle, _f](std::coroutine_handle<P>& _hdl)
@@ -67,6 +70,7 @@ namespace lite
     }
 
     template<typename P, typename T, typename F>
+        requires requires (F _f, std::coroutine_handle<P> _handle, T& _value) { _f(_handle, _value); }
     struct awaiter_value
     {
         awaiter_value(F _f) : f(_f) {}
@@ -81,6 +85,7 @@ namespace lite
     };
 
     template<typename P, typename T, typename F>
+        requires requires (F _f, T& _value) { _f(_value); }
     inline auto await_value(std::coroutine_handle<P>& _handle, F _f)
     {
         auto fn = [&_handle, _f](std::coroutine_handle<P>& _hdl, T& _value)
