@@ -20,29 +20,32 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${source_dir}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${source_dir}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${source_dir}/lib)
 
-if(WIN32)
-  function(get_WIN32_WINNT version)
-    if(CMAKE_SYSTEM_VERSION)
-      set(ver ${CMAKE_SYSTEM_VERSION})
-      string(REGEX MATCH "^([0-9]+).([0-9])" ver ${ver})
-      string(REGEX MATCH "^([0-9]+)" verMajor ${ver})
-      # Check for Windows 10, b/c we'll need to convert to hex 'A'.
-      if("${verMajor}" MATCHES "10")
-        set(verMajor "A")
-        string(REGEX REPLACE "^([0-9]+)" ${verMajor} ver ${ver})
-      endif()
-      # Remove all remaining '.' characters.
-      string(REPLACE "." "" ver ${ver})
-      # Prepend each digit with a zero.
-      string(REGEX REPLACE "([0-9A-Z])" "0\\1" ver ${ver})
-      set(${version} "0x${ver}" PARENT_SCOPE)
+function(get_WIN32_WINNT version)
+  if(CMAKE_SYSTEM_VERSION)
+    set(ver ${CMAKE_SYSTEM_VERSION})
+    string(REGEX MATCH "^([0-9]+).([0-9])" ver ${ver})
+    string(REGEX MATCH "^([0-9]+)" verMajor ${ver})
+    # Check for Windows 10, b/c we'll need to convert to hex 'A'.
+    if("${verMajor}" MATCHES "10")
+      set(verMajor "A")
+      string(REGEX REPLACE "^([0-9]+)" ${verMajor} ver ${ver})
     endif()
-  endfunction()
+    # Remove all remaining '.' characters.
+    string(REPLACE "." "" ver ${ver})
+    # Prepend each digit with a zero.
+    string(REGEX REPLACE "([0-9A-Z])" "0\\1" ver ${ver})
+    set(${version} "0x${ver}" PARENT_SCOPE)
+  endif()
+endfunction()
 
-  get_WIN32_WINNT(ver)
-  cmake_print_variables(CMAKE_SYSTEM_VERSION)
-  cmake_print_variables(ver)
-  add_definitions(-D_WIN32_WINNT=${ver})
+cmake_print_variables(CMAKE_SYSTEM)
+cmake_print_variables(CMAKE_SYSTEM_NAME)
+cmake_print_variables(CMAKE_SYSTEM_VERSION)
+cmake_print_variables(CMAKE_SYSTEM_PROCESSOR)
+if(WIN32)
+  get_WIN32_WINNT(_WIN32_WINNT)
+  cmake_print_variables(_WIN32_WINNT)
+  add_compile_definitions(_WIN32_WINNT=${_WIN32_WINNT})
 endif()
 
 find_package(Boost REQUIRED) # 必需
@@ -62,7 +65,7 @@ target_link_libraries(${server} PRIVATE
   $<TARGET_NAME_IF_EXISTS:spdlog::spdlog>
 )
 target_compile_definitions(${server} PRIVATE
-  SPDLOG_EXISTS=$<TARGET_EXISTS:spdlog::spdlog>
+  HAS_SPDLOG=$<TARGET_EXISTS:spdlog::spdlog>
 )
 
 # 客戶端
@@ -79,5 +82,5 @@ target_link_libraries(${client} PRIVATE
   $<TARGET_NAME_IF_EXISTS:spdlog::spdlog>
 )
 target_compile_definitions(${client} PRIVATE
-  SPDLOG_EXISTS=$<TARGET_EXISTS:spdlog::spdlog>
+  HAS_SPDLOG=$<TARGET_EXISTS:spdlog::spdlog>
 )

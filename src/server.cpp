@@ -1,3 +1,6 @@
+#include <memory> // std::shared_ptr std::make_shared
+#include <string> // std::string
+#include <vector> // std::vector
 #include <coro.hpp>
 
 namespace asio = boost::asio;
@@ -182,7 +185,7 @@ void on_accept(
 
 int main()
 {
-#if SPDLOG_EXISTS
+#if HAS_SPDLOG
     spdlog::set_pattern("[%Y-%m-%d %T.%e] [%^%l%$] [t:%6t] [p:%6P] [%-20!!:%4#] %v");
 #endif
 

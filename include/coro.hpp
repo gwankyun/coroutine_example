@@ -1,20 +1,17 @@
 #pragma once
-#include <memory>
-#include <string>
-#include <vector>
 #include <type_traits>
-#include <tuple>
+#include <tuple> // std::tuple
 #define BOOST_ASIO_NO_DEPRECATED 1
-#include <boost/asio.hpp>
-#include <boost/system.hpp>
-#include <coroutine> // std::coroutine_handle
+#include <boost/asio.hpp> // boost::asio
+#include <boost/system.hpp> // boost::system::error_code
+#include <coroutine> // std::coroutine_handle std::suspend_never
 #include <concepts> // std::invocable
 
-#ifndef SPDLOG_EXISTS
-#  define SPDLOG_EXISTS 0
+#ifndef HAS_SPDLOG
+#  define HAS_SPDLOG 0
 #endif
 
-#if SPDLOG_EXISTS
+#if HAS_SPDLOG
 #  include <spdlog/spdlog.h>
 #else
 #  include <iostream>
@@ -48,9 +45,10 @@ namespace lite
         requires std::invocable<F, std::coroutine_handle<P>&>
     struct awaiter
     {
+        using handle_type = std::coroutine_handle<P>;
         awaiter(F _f) : f(_f) {}
         bool await_ready() { return false; }
-        void await_suspend(std::coroutine_handle<P> _handle) // _handle為傳入的task::handle
+        void await_suspend(handle_type _handle) // _handle為傳入的task::handle
         {
             f(_handle);
         }
@@ -61,7 +59,8 @@ namespace lite
     template<typename P, std::invocable F>
     inline auto await(std::coroutine_handle<P>& _handle, F _f)
     {
-        auto fn = [&_handle, _f](std::coroutine_handle<P>& _hdl)
+        using handle_type = std::coroutine_handle<P>;
+        auto fn = [&_handle, _f](handle_type& _hdl)
         {
             _handle = _hdl; // 把協程句柄傳出去
             _f();
@@ -73,9 +72,10 @@ namespace lite
         requires std::invocable<F, std::coroutine_handle<P>&, T&>
     struct awaiter_value
     {
+        using handle_type = std::coroutine_handle<P>;
         awaiter_value(F _f) : f(_f) {}
         bool await_ready() { return false; }
-        void await_suspend(std::coroutine_handle<P> _handle)
+        void await_suspend(handle_type _handle)
         {
             f(_handle, value);
         }
@@ -88,7 +88,8 @@ namespace lite
         requires std::invocable<F, T&>
     inline auto await_value(std::coroutine_handle<P>& _handle, F _f)
     {
-        auto fn = [&_handle, _f](std::coroutine_handle<P>& _hdl, T& _value)
+        using handle_type = std::coroutine_handle<P>;
+        auto fn = [&_handle, _f](handle_type& _hdl, T& _value)
         {
             _handle = _hdl;
             _f(_value);
@@ -97,24 +98,34 @@ namespace lite
     }
 
     template<typename P>
+    struct asio_callback
+    {
+        using handle_type = std::coroutine_handle<P>;
+        using result_type = std::tuple<error_code_t, std::size_t>;
+        asio_callback(handle_type& _handle, result_type& _result)
+            : handle(_handle), result(_result) {}
+        ~asio_callback() {}
+        void operator()(error_code_t _error, std::size_t _bytes)
+        {
+            result = std::make_tuple(_error, _bytes);
+            handle.resume();
+        }
+        result_type& result;
+        handle_type& handle;
+    };
+
+    template<typename P>
     inline auto async_read(
         std::coroutine_handle<P>& _handle,
         asio::ip::tcp::socket& _socket,
         asio::mutable_buffer _buffer)
     {
-        using result_t = std::tuple<error_code_t, std::size_t>;
-        return lite::await_value<P, result_t>(
-            _handle,
-            [&_handle, &_socket, _buffer](result_t& _result)
-            {
-                _socket.async_read_some(
-                    _buffer,
-                    [&_handle, &_result](error_code_t _error, std::size_t _bytes)
-                    {
-                        _result = std::make_tuple(_error, _bytes);
-                        _handle.resume();
-                    });
-            });
+        using result_type = std::tuple<error_code_t, std::size_t>;
+        auto fn = [&_handle, &_socket, _buffer](result_type& _result)
+        {
+            _socket.async_read_some(_buffer, asio_callback(_handle, _result));
+        };
+        return lite::await_value<P, result_type>(_handle, fn);
     }
 
     template<typename P>
@@ -123,19 +134,12 @@ namespace lite
         asio::ip::tcp::socket& _socket,
         asio::const_buffer _buffer)
     {
-        using result_t = std::tuple<error_code_t, std::size_t>;
-        return lite::await_value<P, result_t>(
-            _handle,
-            [&_handle, &_socket, _buffer](result_t& _result)
-            {
-                _socket.async_write_some(
-                    _buffer,
-                    [&_handle, &_result](error_code_t _error, std::size_t _bytes)
-                    {
-                        _result = std::make_tuple(_error, _bytes);
-                        _handle.resume();
-                    });
-            });
+        using result_type = std::tuple<error_code_t, std::size_t>;
+        auto fn = [&_handle, &_socket, _buffer](result_type& _result)
+        {
+            _socket.async_write_some(_buffer, asio_callback(_handle, _result));
+        };
+        return lite::await_value<P, result_type>(_handle, fn);
     }
 
     template<typename T>
