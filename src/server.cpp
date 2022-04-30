@@ -1,4 +1,4 @@
-#include <memory> // std::shared_ptr std::make_shared
+ï»¿#include <memory> // std::shared_ptr std::make_shared
 #include <string> // std::string
 #include <vector> // std::vector
 #include <coro.hpp>
@@ -41,7 +41,7 @@ lite::task server_coro(std::shared_ptr<asio::ip::tcp::socket> _socket)
 {
     auto& socket = *_socket;
     using promise_type = lite::task::promise_type;
-    std::coroutine_handle<promise_type> handle; // ÓÃì¶±£´æ…f³Ì¾ä±ú
+    std::coroutine_handle<promise_type> handle; // ç”¨æ–¼ä¿å­˜å”ç¨‹å¥æŸ„
 
     error_code_t error;
     std::size_t bytes;
@@ -95,7 +95,7 @@ lite::task server_coro_value(std::shared_ptr<asio::ip::tcp::socket> _socket)
 {
     auto& socket = *_socket;
     using promise_type = lite::task::promise_type;
-    std::coroutine_handle<promise_type> handle; // ÓÃì¶±£´æ…f³Ì¾ä±ú
+    std::coroutine_handle<promise_type> handle; // ç”¨æ–¼ä¿å­˜å”ç¨‹å¥æŸ„
 
     std::vector<char> vec(1024, '\0');
     auto [error_r, bytes_r] = co_await lite::async_read(
@@ -124,7 +124,7 @@ lite::task_value<error_code_t> server_coro_return_value(std::shared_ptr<asio::ip
 {
     auto& socket = *_socket;
     using promise_type = lite::task_value<error_code_t>::promise_type;
-    std::coroutine_handle<promise_type> handle; // ÓÃì¶±£´æ…f³Ì¾ä±ú
+    std::coroutine_handle<promise_type> handle; // ç”¨æ–¼ä¿å­˜å”ç¨‹å¥æŸ„
 
     error_code_t error;
 
@@ -176,9 +176,9 @@ void on_accept(
     SPDLOG_INFO(remote_endpoint.address().to_string());
     SPDLOG_INFO(remote_endpoint.port());
 
-    //server_callback(_socket); // »ØÕ{°æ±¾
-    //server_coro(_socket); // …f³Ì°ü¹ü»ØÕ{
-    //server_coro_value(_socket); // …f³Ì·âÑb»ØÕ{
+    //server_callback(_socket); // å›èª¿ç‰ˆæœ¬
+    //server_coro(_socket); // å”ç¨‹åŒ…è£¹å›èª¿
+    //server_coro_value(_socket); // å”ç¨‹å°è£å›èª¿
     auto error = server_coro_return_value(_socket).get();
     SPDLOG_INFO(error.message());
 }

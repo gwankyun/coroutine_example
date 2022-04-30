@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <type_traits>
 #include <tuple> // std::tuple
 #define BOOST_ASIO_NO_DEPRECATED 1
@@ -38,7 +38,7 @@ namespace lite
             void return_void() {}
             void unhandled_exception() { std::exit(1); }
         };
-        handle_type handle; // …f³Ì¾ä±ú
+        handle_type handle; // å”ç¨‹å¥æŸ„
     };
 
     template<typename P, typename F>
@@ -48,7 +48,7 @@ namespace lite
         using handle_type = std::coroutine_handle<P>;
         awaiter(F _f) : f(_f) {}
         bool await_ready() { return false; }
-        void await_suspend(handle_type _handle) // _handleé‚÷ÈëµÄtask::handle
+        void await_suspend(handle_type _handle) // _handleç‚ºå‚³å…¥çš„task::handle
         {
             f(_handle);
         }
@@ -62,7 +62,7 @@ namespace lite
         using handle_type = std::coroutine_handle<P>;
         auto fn = [&_handle, _f](handle_type& _hdl)
         {
-            _handle = _hdl; // °Ñ…f³Ì¾ä±ú‚÷³öÈ¥
+            _handle = _hdl; // æŠŠå”ç¨‹å¥æŸ„å‚³å‡ºå»
             _f();
         };
         return awaiter<P, decltype(fn)>{ fn };
@@ -79,9 +79,9 @@ namespace lite
         {
             f(_handle, value);
         }
-        T await_resume() { return value; } // ß@Ñe¾ÍÊÇco_awaitµÄ·µ»ØÖµ
+        T await_resume() { return value; } // é€™è£¡å°±æ˜¯co_awaitçš„è¿”å›å€¼
         F f;
-        T value{}; // ÓÃì¶±£´æco_awaitµÄ·µ»ØÖµ
+        T value{}; // ç”¨æ–¼ä¿å­˜co_awaitçš„è¿”å›å€¼
     };
 
     template<typename P, typename T, typename F>
@@ -155,7 +155,7 @@ namespace lite
             }
             std::suspend_never initial_suspend() { return {}; }
             std::suspend_never final_suspend() noexcept { return {}; }
-            void return_value(T _value) { value = _value; } // Õ{ÓÃco_return
+            void return_value(T _value) { value = _value; } // èª¿ç”¨co_return
             void unhandled_exception()
             {
                 std::exit(1);
