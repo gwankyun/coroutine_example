@@ -20,6 +20,7 @@
 
 namespace asio = boost::asio;
 using error_code_t = boost::system::error_code;
+using socket_t = asio::ip::tcp::socket;
 
 namespace lite
 {

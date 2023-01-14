@@ -1,6 +1,6 @@
 ﻿#include <coro.hpp>
 
-void client_callback(std::shared_ptr<asio::ip::tcp::socket> _socket)
+void client_callback(std::shared_ptr<socket_t> _socket)
 {
     auto str = std::make_shared<std::string>("client.");
     _socket->async_write_some(
@@ -32,7 +32,7 @@ void client_callback(std::shared_ptr<asio::ip::tcp::socket> _socket)
     );
 }
 
-lite::task client_coro(std::shared_ptr<asio::ip::tcp::socket> _socket)
+lite::task client_coro(std::shared_ptr<socket_t> _socket)
 {
     auto& socket = *_socket;
     using promise_type = lite::task::promise_type;
@@ -84,7 +84,7 @@ lite::task client_coro(std::shared_ptr<asio::ip::tcp::socket> _socket)
     SPDLOG_INFO(vec.data());
 }
 
-lite::task client_coro_value(std::shared_ptr<asio::ip::tcp::socket> _socket)
+lite::task client_coro_value(std::shared_ptr<socket_t> _socket)
 {
     auto& socket = *_socket;
     using promise_type = lite::task::promise_type;
@@ -113,7 +113,7 @@ lite::task client_coro_value(std::shared_ptr<asio::ip::tcp::socket> _socket)
     SPDLOG_INFO(vec.data());
 }
 
-lite::task_value<error_code_t> client_coro_return_value(std::shared_ptr<asio::ip::tcp::socket> _socket)
+lite::task_value<error_code_t> client_coro_return_value(std::shared_ptr<socket_t> _socket)
 {
     auto& socket = *_socket;
     using promise_type = lite::task_value<error_code_t>::promise_type;
@@ -148,7 +148,7 @@ lite::task_value<error_code_t> client_coro_return_value(std::shared_ptr<asio::ip
 
 void on_connect(
     error_code_t _error,
-    std::shared_ptr<asio::ip::tcp::socket> _socket)
+    std::shared_ptr<socket_t> _socket)
 {
     if (_error)
     {
@@ -176,7 +176,7 @@ int main()
     asio::io_context io_context;
 
     {
-        auto socket = std::make_shared<asio::ip::tcp::socket>(io_context);
+        auto socket = std::make_shared<socket_t>(io_context);
         socket->async_connect(
             asio::ip::tcp::endpoint(
                 asio::ip::make_address("127.0.0.1"),

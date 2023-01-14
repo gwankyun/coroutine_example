@@ -1,5 +1,5 @@
 ﻿# cmake最低版本
-cmake_minimum_required(VERSION 3.23)
+cmake_minimum_required(VERSION 3.25)
 
 # 項目名
 set(project coroutine_example)
@@ -48,8 +48,20 @@ if(WIN32)
   add_compile_definitions(_WIN32_WINNT=${_WIN32_WINNT})
 endif()
 
+set(Boost_ROOT "c:/Program Files/boost_1_81_0")
 find_package(Boost REQUIRED) # 必需
 find_package(spdlog CONFIG) # 可選
+
+add_library(common_required INTERFACE)
+target_include_directories(common_required INTERFACE include)
+target_compile_features(common_required INTERFACE cxx_std_20)
+target_link_libraries(common_required INTERFACE
+  Boost::headers
+  $<TARGET_NAME_IF_EXISTS:spdlog::spdlog>
+)
+target_compile_definitions(common_required INTERFACE
+  HAS_SPDLOG=$<TARGET_EXISTS:spdlog::spdlog>
+)
 
 # 服務端
 set(server server)
@@ -58,15 +70,7 @@ target_sources(${server} PRIVATE
   src/server.cpp
   include/coro.hpp
 )
-target_include_directories(${server} PRIVATE include)
-target_compile_features(${server} PUBLIC cxx_std_20)
-target_link_libraries(${server} PRIVATE
-  Boost::headers
-  $<TARGET_NAME_IF_EXISTS:spdlog::spdlog>
-)
-target_compile_definitions(${server} PRIVATE
-  HAS_SPDLOG=$<TARGET_EXISTS:spdlog::spdlog>
-)
+target_link_libraries(${server} PRIVATE common_required)
 
 # 客戶端
 set(client client)
@@ -75,12 +79,4 @@ target_sources(${client} PRIVATE
   src/client.cpp
   include/coro.hpp
 )
-target_include_directories(${client} PRIVATE include)
-target_compile_features(${client} PUBLIC cxx_std_20)
-target_link_libraries(${client} PRIVATE
-  Boost::headers
-  $<TARGET_NAME_IF_EXISTS:spdlog::spdlog>
-)
-target_compile_definitions(${client} PRIVATE
-  HAS_SPDLOG=$<TARGET_EXISTS:spdlog::spdlog>
-)
+target_link_libraries(${client} PRIVATE common_required)

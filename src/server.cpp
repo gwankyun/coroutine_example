@@ -3,10 +3,9 @@
 #include <vector> // std::vector
 #include <coro.hpp>
 
-namespace asio = boost::asio;
-using error_code_t = boost::system::error_code;
+using acceptor_t = asio::ip::tcp::acceptor;
 
-void server_callback(std::shared_ptr<asio::ip::tcp::socket> _socket)
+void server_callback(std::shared_ptr<socket_t> _socket)
 {
     auto vec = std::make_shared<std::vector<char>>(1024, '\0');
     _socket->async_read_some(
@@ -37,7 +36,7 @@ void server_callback(std::shared_ptr<asio::ip::tcp::socket> _socket)
         });
 }
 
-lite::task server_coro(std::shared_ptr<asio::ip::tcp::socket> _socket)
+lite::task server_coro(std::shared_ptr<socket_t> _socket)
 {
     auto& socket = *_socket;
     using promise_type = lite::task::promise_type;
@@ -91,7 +90,7 @@ lite::task server_coro(std::shared_ptr<asio::ip::tcp::socket> _socket)
     SPDLOG_INFO("write finished.");
 }
 
-lite::task server_coro_value(std::shared_ptr<asio::ip::tcp::socket> _socket)
+lite::task server_coro_value(std::shared_ptr<socket_t> _socket)
 {
     auto& socket = *_socket;
     using promise_type = lite::task::promise_type;
@@ -120,7 +119,7 @@ lite::task server_coro_value(std::shared_ptr<asio::ip::tcp::socket> _socket)
     SPDLOG_INFO("write finished.");
 }
 
-lite::task_value<error_code_t> server_coro_return_value(std::shared_ptr<asio::ip::tcp::socket> _socket)
+lite::task_value<error_code_t> server_coro_return_value(std::shared_ptr<socket_t> _socket)
 {
     auto& socket = *_socket;
     using promise_type = lite::task_value<error_code_t>::promise_type;
@@ -155,8 +154,8 @@ lite::task_value<error_code_t> server_coro_return_value(std::shared_ptr<asio::ip
 
 void on_accept(
     error_code_t _error,
-    asio::ip::tcp::acceptor& _acceptor,
-    std::shared_ptr<asio::ip::tcp::socket> _socket)
+    acceptor_t& _acceptor,
+    std::shared_ptr<socket_t> _socket)
 {
     if (_error)
     {
@@ -164,7 +163,7 @@ void on_accept(
         return;
     }
 
-    auto newSocket = std::make_shared<asio::ip::tcp::socket>(_acceptor.get_executor());
+    auto newSocket = std::make_shared<socket_t>(_acceptor.get_executor());
     _acceptor.async_accept(
         *newSocket,
         [&_acceptor, newSocket](error_code_t error)
@@ -191,12 +190,12 @@ int main()
 
     asio::io_context io_context;
 
-    asio::ip::tcp::acceptor acceptor(
+    acceptor_t acceptor(
         io_context,
         asio::ip::tcp::endpoint(asio::ip::tcp::v4(), 8888));
 
     {
-        auto socket = std::make_shared<asio::ip::tcp::socket>(io_context);
+        auto socket = std::make_shared<socket_t>(io_context);
         acceptor.async_accept(
             *socket,
             [&acceptor, socket](error_code_t error)
