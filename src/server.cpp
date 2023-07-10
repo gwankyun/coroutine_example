@@ -5,7 +5,7 @@
 
 using acceptor_t = asio::ip::tcp::acceptor;
 
-void server_callback(std::shared_ptr<socket_t> _socket)
+void callback(std::shared_ptr<socket_t> _socket)
 {
     auto vec = std::make_shared<std::vector<char>>(1024, '\0');
     _socket->async_read_some(
@@ -14,12 +14,12 @@ void server_callback(std::shared_ptr<socket_t> _socket)
         {
             if (_error)
             {
-                SPDLOG_INFO(_error.message());
+                SPDLOG_INFO(DBG(_error.message()));
                 return;
             }
-            SPDLOG_INFO(_bytes);
+            SPDLOG_INFO(DBG(_bytes));
 
-            SPDLOG_INFO(vec->data());
+            SPDLOG_INFO(DBG(vec->data()));
 
             auto str = std::make_shared<std::string>("server.");
             _socket->async_write_some(
@@ -28,17 +28,17 @@ void server_callback(std::shared_ptr<socket_t> _socket)
                 {
                     if (_error)
                     {
-                        SPDLOG_INFO(_error.message());
+                        SPDLOG_INFO(DBG(_error.message()));
                         return;
                     }
-                    SPDLOG_INFO(_bytes);
+                    SPDLOG_INFO(DBG(_bytes));
                 });
         });
 }
 
-lite::task server_coro(std::shared_ptr<socket_t> _socket)
+lite::task coro_resume(std::shared_ptr<socket_t> _socket)
 {
-    auto& socket = *_socket;
+    auto &socket = *_socket;
     using promise_type = lite::task::promise_type;
     std::coroutine_handle<promise_type> handle; // 用於保存協程句柄
 
@@ -61,13 +61,13 @@ lite::task server_coro(std::shared_ptr<socket_t> _socket)
         });
     if (error)
     {
-        SPDLOG_INFO(error.message());
+        SPDLOG_INFO(DBG(error.message()));
         co_return;
     }
-    SPDLOG_INFO(bytes);
-    SPDLOG_INFO(vec.data());
+    SPDLOG_INFO(DBG(bytes));
+    SPDLOG_INFO(DBG(vec.data()));
 
-    std::string str{ "server." };
+    std::string str{"server."};
     co_await lite::await(
         handle,
         [&handle, &socket, &error, &bytes, &str]
@@ -83,109 +83,132 @@ lite::task server_coro(std::shared_ptr<socket_t> _socket)
         });
     if (error)
     {
-        SPDLOG_INFO(error.message());
+        SPDLOG_INFO(DBG(error.message()));
         co_return;
     }
-    SPDLOG_INFO(bytes);
-    SPDLOG_INFO("write finished.");
+    SPDLOG_INFO(DBG(bytes));
 }
 
-lite::task server_coro_value(std::shared_ptr<socket_t> _socket)
+lite::task coro_return(std::shared_ptr<socket_t> _socket)
 {
-    auto& socket = *_socket;
+    auto &socket = *_socket;
     using promise_type = lite::task::promise_type;
     std::coroutine_handle<promise_type> handle; // 用於保存協程句柄
 
     std::vector<char> vec(1024, '\0');
-    auto [error_r, bytes_r] = co_await lite::async_read(
-        handle, socket, asio::buffer(vec.data(), vec.size()));
-    if (error_r)
     {
-        SPDLOG_INFO(error_r.message());
-        co_return;
+        auto [error, bytes] = co_await lite::async_read(
+            handle, socket, asio::buffer(vec.data(), vec.size()));
+        if (error)
+        {
+            SPDLOG_INFO(DBG(error.message()));
+            co_return;
+        }
+        SPDLOG_INFO(DBG(bytes));
     }
-    SPDLOG_INFO(bytes_r);
-    SPDLOG_INFO(vec.data());
+    SPDLOG_INFO(DBG(vec.data()));
 
-    std::string str{ "server." };
-    auto [error_w, bytes_w] = co_await lite::async_write(
-        handle, socket, asio::buffer(str.c_str(), str.size()));
-    if (error_w)
+    std::string str{"server."};
     {
-        SPDLOG_INFO(error_w.message());
-        co_return;
+        auto [error, bytes] = co_await lite::async_write(
+            handle, socket, asio::buffer(str.c_str(), str.size()));
+        if (error)
+        {
+            SPDLOG_INFO(DBG(error.message()));
+            co_return;
+        }
+        SPDLOG_INFO(DBG(bytes));
     }
-    SPDLOG_INFO(bytes_w);
-    SPDLOG_INFO("write finished.");
 }
 
-lite::task_value<error_code_t> server_coro_return_value(std::shared_ptr<socket_t> _socket)
+lite::task_value<error_code_t> coro_return_value(std::shared_ptr<socket_t> _socket)
 {
-    auto& socket = *_socket;
+    auto &socket = *_socket;
     using promise_type = lite::task_value<error_code_t>::promise_type;
     std::coroutine_handle<promise_type> handle; // 用於保存協程句柄
 
     error_code_t error;
 
     std::vector<char> vec(1024, '\0');
-    auto [error_r, bytes_r] = co_await lite::async_read(
-        handle, socket, asio::buffer(vec.data(), vec.size()));
-    if (error_r)
     {
-        SPDLOG_INFO(error_r.message());
-        co_return error_r;
+        auto [error, bytes] = co_await lite::async_read(
+            handle, socket, asio::buffer(vec.data(), vec.size()));
+        if (error)
+        {
+            SPDLOG_INFO(DBG(error.message()));
+            co_return error;
+        }
+        SPDLOG_INFO(DBG(bytes));
     }
-    SPDLOG_INFO(bytes_r);
-    SPDLOG_INFO(vec.data());
+    SPDLOG_INFO(DBG(vec.data()));
 
-    std::string str{ "server." };
-    auto [error_w, bytes_w] = co_await lite::async_write(
-        handle, socket, asio::buffer(str.c_str(), str.size()));
-    if (error_w)
+    std::string str{"server."};
     {
-        SPDLOG_INFO(error_w.message());
-        co_return error_w;
+        auto [error, bytes] = co_await lite::async_write(
+            handle, socket, asio::buffer(str.c_str(), str.size()));
+        if (error)
+        {
+            SPDLOG_INFO(DBG(error.message()));
+            co_return error;
+        }
+        SPDLOG_INFO(DBG(bytes));
     }
-    SPDLOG_INFO(bytes_w);
-    SPDLOG_INFO("write finished.");
 
     co_return error;
 }
 
 void on_accept(
     error_code_t _error,
-    acceptor_t& _acceptor,
-    std::shared_ptr<socket_t> _socket)
+    acceptor_t &_acceptor,
+    std::shared_ptr<socket_t> _socket,
+    AsyncType _type)
 {
     if (_error)
     {
-        SPDLOG_INFO(_error.message());
+        SPDLOG_INFO(DBG(_error.message()));
         return;
     }
 
     auto newSocket = std::make_shared<socket_t>(_acceptor.get_executor());
     _acceptor.async_accept(
         *newSocket,
-        [&_acceptor, newSocket](error_code_t error)
+        [&_acceptor, newSocket, _type](error_code_t error)
         {
-            on_accept(error, _acceptor, newSocket);
+            on_accept(error, _acceptor, newSocket, _type);
         });
 
     auto remote_endpoint = _socket->remote_endpoint();
     SPDLOG_INFO(remote_endpoint.address().to_string());
     SPDLOG_INFO(remote_endpoint.port());
 
-    //server_callback(_socket); // 回調版本
-    //server_coro(_socket); // 協程包裹回調
-    //server_coro_value(_socket); // 協程封裝回調
-    auto error = server_coro_return_value(_socket).get();
-    SPDLOG_INFO(error.message());
+    error_code_t error;
+
+    switch (_type)
+    {
+    case AsyncType::Callback:
+        callback(_socket); // 回調版本
+        break;
+    case AsyncType::CoroResume:
+        coro_resume(_socket); // 協程包裹回調
+        break;
+    case AsyncType::CoroReturn:
+        coro_return(_socket); // 協程封裝回調
+        break;
+    case AsyncType::CoroReturnValue:
+    {
+        error = coro_return_value(_socket).get(); // 協程封裝回調返回值
+        SPDLOG_INFO(error.message());
+        break;
+    }
+    default:
+        break;
+    }
 }
 
 int main()
 {
 #if HAS_SPDLOG
-    spdlog::set_pattern("[%Y-%m-%d %T.%e] [%^%l%$] [t:%6t] [p:%6P] [%-20!!:%4#] %v");
+    spdlog::set_pattern("[%C-%m-%d %T.%e] [%^%L%$] [%-20!!:%4#] %v");
 #endif
 
     asio::io_context io_context;
@@ -200,7 +223,7 @@ int main()
             *socket,
             [&acceptor, socket](error_code_t error)
             {
-                on_accept(error, acceptor, socket);
+                on_accept(error, acceptor, socket, AsyncType::CoroReturnValue);
             });
     }
 

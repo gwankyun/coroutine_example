@@ -18,15 +18,33 @@
 #  define SPDLOG_INFO(x) std::cout << (x) << "\n";
 #endif
 
+#ifndef TO_STRING_IMPL
+#define TO_STRING_IMPL(x) #x
+#endif
+
+#ifndef TO_STRING
+#define TO_STRING(x) TO_STRING_IMPL(x)
+#endif
+
+#define DBG(x) "{0}: {1}", TO_STRING(x), (x)
+
 namespace asio = boost::asio;
 using error_code_t = boost::system::error_code;
 using socket_t = asio::ip::tcp::socket;
+
+enum struct AsyncType
+{
+    Callback = 0,
+    CoroResume,
+    CoroReturn,
+    CoroReturnValue
+};
 
 namespace lite
 {
     struct task
     {
-        struct promise_type;
+        struct promise_type; // std::coroutine_traits要求
         using handle_type = std::coroutine_handle<promise_type>;
         struct promise_type
         {
@@ -57,6 +75,10 @@ namespace lite
         F f;
     };
 
+    /// @brief 在協程中處理回調
+    /// @param _handle 協程柄
+    /// @param _f 回調
+    /// @return 可供co_await的協程
     template<typename P, std::invocable F>
     inline auto await(std::coroutine_handle<P>& _handle, F _f)
     {
@@ -64,7 +86,7 @@ namespace lite
         auto fn = [&_handle, _f](handle_type& _hdl)
         {
             _handle = _hdl; // 把協程句柄傳出去
-            _f();
+            _f(); // 業務回調
         };
         return awaiter<P, decltype(fn)>{ fn };
     }
@@ -85,6 +107,10 @@ namespace lite
         T value{}; // 用於保存co_await的返回值
     };
 
+    /// @brief 在協程中處理回調並返回值
+    /// @param _handle 協程柄
+    /// @param _f 回調
+    /// @return 可供co_await的協程
     template<typename P, typename T, typename F>
         requires std::invocable<F, T&>
     inline auto await_value(std::coroutine_handle<P>& _handle, F _f)
@@ -98,30 +124,35 @@ namespace lite
         return awaiter_value<P, T, decltype(fn)>{ fn };
     }
 
+    using result_type = std::tuple<error_code_t, std::size_t>;
+
     template<typename P>
     struct asio_callback
     {
         using handle_type = std::coroutine_handle<P>;
-        using result_type = std::tuple<error_code_t, std::size_t>;
         asio_callback(handle_type& _handle, result_type& _result)
             : handle(_handle), result(_result) {}
         ~asio_callback() {}
         void operator()(error_code_t _error, std::size_t _bytes)
         {
-            result = std::make_tuple(_error, _bytes);
-            handle.resume();
+            result = std::make_tuple(_error, _bytes); // 打包返回值
+            handle.resume(); // 恢復協程
         }
         result_type& result;
         handle_type& handle;
     };
 
-    template<typename P>
+    /// @brief 異步讀緩衝區
+    /// @param _handle 協程柄
+    /// @param _socket 連接
+    /// @param _buffer 緩衝區
+    /// @return [錯誤碼, 讀取長度]
+    template<typename P, typename S>
     inline auto async_read(
         std::coroutine_handle<P>& _handle,
-        asio::ip::tcp::socket& _socket,
+        S& _socket,
         asio::mutable_buffer _buffer)
     {
-        using result_type = std::tuple<error_code_t, std::size_t>;
         auto fn = [&_handle, &_socket, _buffer](result_type& _result)
         {
             _socket.async_read_some(_buffer, asio_callback(_handle, _result));
@@ -129,13 +160,17 @@ namespace lite
         return lite::await_value<P, result_type>(_handle, fn);
     }
 
-    template<typename P>
+    /// @brief 異步寫緩衝區
+    /// @param _handle 協程柄
+    /// @param _socket 連接
+    /// @param _buffer 緩衝區
+    /// @return [錯誤碼, 寫入長度]
+    template<typename P, typename S>
     inline auto async_write(
         std::coroutine_handle<P>& _handle,
-        asio::ip::tcp::socket& _socket,
+        S& _socket,
         asio::const_buffer _buffer)
     {
-        using result_type = std::tuple<error_code_t, std::size_t>;
         auto fn = [&_handle, &_socket, _buffer](result_type& _result)
         {
             _socket.async_write_some(_buffer, asio_callback(_handle, _result));
