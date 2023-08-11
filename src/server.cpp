@@ -96,29 +96,25 @@ lite::task coro_return(std::shared_ptr<socket_t> _socket)
     std::coroutine_handle<promise_type> handle; // 用於保存協程句柄
 
     std::vector<char> vec(1024, '\0');
+    auto [error_r, bytes_r] = co_await lite::async_read(
+        handle, socket, asio::buffer(vec.data(), vec.size()));
+    if (error_r)
     {
-        auto [error, bytes] = co_await lite::async_read(
-            handle, socket, asio::buffer(vec.data(), vec.size()));
-        if (error)
-        {
-            SPDLOG_INFO(DBG(error.message()));
-            co_return;
-        }
-        SPDLOG_INFO(DBG(bytes));
+        SPDLOG_INFO(DBG(error_r.message()));
+        co_return;
     }
+    SPDLOG_INFO(DBG(bytes_r));
     SPDLOG_INFO(DBG(vec.data()));
 
     std::string str{"server."};
+    auto [error_w, bytes_w] = co_await lite::async_write(
+        handle, socket, asio::buffer(str.c_str(), str.size()));
+    if (error_w)
     {
-        auto [error, bytes] = co_await lite::async_write(
-            handle, socket, asio::buffer(str.c_str(), str.size()));
-        if (error)
-        {
-            SPDLOG_INFO(DBG(error.message()));
-            co_return;
-        }
-        SPDLOG_INFO(DBG(bytes));
+        SPDLOG_INFO(DBG(error_w.message()));
+        co_return;
     }
+    SPDLOG_INFO(DBG(bytes_w));
 }
 
 lite::task_value<error_code_t> coro_return_value(std::shared_ptr<socket_t> _socket)
@@ -130,29 +126,25 @@ lite::task_value<error_code_t> coro_return_value(std::shared_ptr<socket_t> _sock
     error_code_t error;
 
     std::vector<char> vec(1024, '\0');
+    auto [error_r, bytes_r] = co_await lite::async_read(
+        handle, socket, asio::buffer(vec.data(), vec.size()));
+    if (error_r)
     {
-        auto [error, bytes] = co_await lite::async_read(
-            handle, socket, asio::buffer(vec.data(), vec.size()));
-        if (error)
-        {
-            SPDLOG_INFO(DBG(error.message()));
-            co_return error;
-        }
-        SPDLOG_INFO(DBG(bytes));
+        SPDLOG_INFO(DBG(error.message()));
+        co_return error_r;
     }
+    SPDLOG_INFO(DBG(bytes_r));
     SPDLOG_INFO(DBG(vec.data()));
 
     std::string str{"server."};
+    auto [error_w, bytes_w] = co_await lite::async_write(
+        handle, socket, asio::buffer(str.c_str(), str.size()));
+    if (error_w)
     {
-        auto [error, bytes] = co_await lite::async_write(
-            handle, socket, asio::buffer(str.c_str(), str.size()));
-        if (error)
-        {
-            SPDLOG_INFO(DBG(error.message()));
-            co_return error;
-        }
-        SPDLOG_INFO(DBG(bytes));
+        SPDLOG_INFO(DBG(error.message()));
+        co_return error;
     }
+    SPDLOG_INFO(DBG(bytes_w));
 
     co_return error;
 }

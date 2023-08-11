@@ -65,7 +65,7 @@ namespace lite
     struct awaiter
     {
         using handle_type = std::coroutine_handle<P>;
-        awaiter(F _f) : f(_f) {}
+        explicit awaiter(F _f) : f(_f) {}
         bool await_ready() { return false; }
         void await_suspend(handle_type _handle) // _handle為傳入的task::handle
         {
@@ -83,7 +83,7 @@ namespace lite
     inline auto await(std::coroutine_handle<P>& _handle, F _f)
     {
         using handle_type = std::coroutine_handle<P>;
-        auto fn = [&_handle, _f](handle_type& _hdl)
+        auto fn = [&_handle, _f](const handle_type& _hdl)
         {
             _handle = _hdl; // 把協程句柄傳出去
             _f(); // 業務回調
@@ -96,7 +96,7 @@ namespace lite
     struct awaiter_value
     {
         using handle_type = std::coroutine_handle<P>;
-        awaiter_value(F _f) : f(_f) {}
+        explicit awaiter_value(F _f) : f(_f) {}
         bool await_ready() { return false; }
         void await_suspend(handle_type _handle)
         {
@@ -116,7 +116,7 @@ namespace lite
     inline auto await_value(std::coroutine_handle<P>& _handle, F _f)
     {
         using handle_type = std::coroutine_handle<P>;
-        auto fn = [&_handle, _f](handle_type& _hdl, T& _value)
+        auto fn = [&_handle, _f](const handle_type& _hdl, T& _value)
         {
             _handle = _hdl;
             _f(_value);
