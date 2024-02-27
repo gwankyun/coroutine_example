@@ -9,10 +9,10 @@ void callback(std::shared_ptr<socket_t> _socket)
         {
             if (_error)
             {
-                SPDLOG_INFO(_error.message());
+                SPDLOG_DBG(INFO, _error.message());
                 return;
             }
-            SPDLOG_INFO(_bytes);
+            SPDLOG_DBG(INFO, _bytes);
 
             auto vec = std::make_shared<std::vector<char>>(1024, '\0');
             _socket->async_read_some(
@@ -21,12 +21,12 @@ void callback(std::shared_ptr<socket_t> _socket)
                 {
                     if (_error)
                     {
-                        SPDLOG_INFO(_error.message());
+                        SPDLOG_DBG(INFO, _error.message());
                         return;
                     }
-                    SPDLOG_INFO(_bytes);
+                    SPDLOG_DBG(INFO, _bytes);
 
-                    SPDLOG_INFO(vec->data());
+                    SPDLOG_DBG(INFO, vec->data());
                 });
         });
 }
@@ -51,15 +51,16 @@ lite::task coro_resume(std::shared_ptr<socket_t> _socket)
                 {
                     error = _error;
                     bytes = _bytes;
-                    handle.resume();
-                });
-        });
+                    handle.resume(); // |
+                });                  // |
+        });                          // v
+    // <---------------------------------
     if (error)
     {
-        SPDLOG_INFO(DBG(error.message()));
+        SPDLOG_DBG(INFO, error.message());
         co_return;
     }
-    SPDLOG_INFO(DBG(bytes));
+    SPDLOG_DBG(INFO, bytes);
 
     std::vector<char> vec(1024, '\0');
     co_await lite::await(
@@ -72,16 +73,17 @@ lite::task coro_resume(std::shared_ptr<socket_t> _socket)
                 {
                     error = _error;
                     bytes = _bytes;
-                    handle.resume();
-                });
-        });
+                    handle.resume(); // |
+                });                  // |
+        });                          // v
+    // <---------------------------------
     if (error)
     {
-        SPDLOG_INFO(DBG(error.message()));
+        SPDLOG_DBG(INFO, error.message());
         co_return;
     }
-    SPDLOG_INFO(DBG(bytes));
-    SPDLOG_INFO(DBG(vec.data()));
+    SPDLOG_DBG(INFO, bytes);
+    SPDLOG_DBG(INFO, vec.data());
 }
 
 lite::task coro_return(std::shared_ptr<socket_t> _socket)
@@ -95,21 +97,21 @@ lite::task coro_return(std::shared_ptr<socket_t> _socket)
         handle, socket, asio::buffer(str.c_str(), str.size()));
     if (error_w)
     {
-        SPDLOG_INFO(DBG(error_w.message()));
+        SPDLOG_DBG(INFO, error_w.message());
         co_return;
     }
-    SPDLOG_INFO(DBG(bytes_w));
+    SPDLOG_DBG(INFO, bytes_w);
 
     std::vector<char> vec(1024, '\0');
     auto [error_r, bytes_r] = co_await lite::async_read(
         handle, socket, asio::buffer(vec.data(), vec.size()));
     if (error_r)
     {
-        SPDLOG_INFO(DBG(error_r.message()));
+        SPDLOG_DBG(INFO, error_r.message());
         co_return;
     }
-    SPDLOG_INFO(DBG(bytes_r));
-    SPDLOG_INFO(DBG(vec.data()));
+    SPDLOG_DBG(INFO, bytes_r);
+    SPDLOG_DBG(INFO, vec.data());
 }
 
 lite::task_value<error_code_t> coro_return_value(std::shared_ptr<socket_t> _socket)
@@ -125,21 +127,21 @@ lite::task_value<error_code_t> coro_return_value(std::shared_ptr<socket_t> _sock
         handle, socket, asio::buffer(str.c_str(), str.size()));
     if (error_w)
     {
-        SPDLOG_INFO(DBG(error.message()));
+        SPDLOG_DBG(INFO, error.message());
         co_return error_w;
     }
-    SPDLOG_INFO(DBG(bytes_w));
+    SPDLOG_DBG(INFO, bytes_w);
 
     std::vector<char> vec(1024, '\0');
     auto [error_r, bytes_r] = co_await lite::async_read(
         handle, socket, asio::buffer(vec.data(), vec.size()));
     if (error_r)
     {
-        SPDLOG_INFO(DBG(error_r.message()));
+        SPDLOG_DBG(INFO, error_r.message());
         co_return error_r;
     }
-    SPDLOG_INFO(DBG(bytes_r));
-    SPDLOG_INFO(DBG(vec.data()));
+    SPDLOG_DBG(INFO, bytes_r);
+    SPDLOG_DBG(INFO, vec.data());
 
     co_return error;
 }
@@ -151,7 +153,7 @@ void on_connect(
 {
     if (_error)
     {
-        SPDLOG_INFO(DBG(_error.message()));
+        SPDLOG_DBG(INFO, _error.message());
         return;
     }
 
@@ -174,7 +176,7 @@ void on_connect(
     case AsyncType::CoroReturnValue:
     {
         error = coro_return_value(_socket).get(); // 協程封裝回調返回值
-        SPDLOG_WARN(error.message());
+        SPDLOG_DBG(WARN, error.message());
         break;
     }
     default:
@@ -189,13 +191,13 @@ int main()
 #endif
 
     asio::io_context io_context;
+    namespace ip = asio::ip;
 
     {
         auto socket = std::make_shared<socket_t>(io_context);
+        auto address = ip::make_address("127.0.0.1");
         socket->async_connect(
-            asio::ip::tcp::endpoint(
-                asio::ip::make_address("127.0.0.1"),
-                8888),
+            ip::tcp::endpoint(address, 8888),
             [socket](error_code_t _error)
             {
                 on_connect(_error, socket, AsyncType::CoroReturnValue);

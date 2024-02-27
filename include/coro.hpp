@@ -26,7 +26,17 @@
 #define TO_STRING(x) TO_STRING_IMPL(x)
 #endif
 
+#ifndef CAT_IMPL
+#define CAT_IMPL(a, b) a##b
+#endif
+
+#ifndef CAT
+#define CAT(a, b) CAT_IMPL(a, b)
+#endif
+
 #define DBG(x) "{0}: {1}", TO_STRING(x), (x)
+
+#define SPDLOG_DBG(_lvl, _value) CAT(SPDLOG_, _lvl)(DBG(_value))
 
 namespace asio = boost::asio;
 using error_code_t = boost::system::error_code;
@@ -133,11 +143,14 @@ namespace lite
         asio_callback(handle_type& _handle, result_type& _result)
             : handle(_handle), result(_result) {}
         ~asio_callback() {}
+        /// @brief 獲取回調的兩個值
         void operator()(error_code_t _error, std::size_t _bytes)
         {
             result = std::make_tuple(_error, _bytes); // 打包返回值
             handle.resume(); // 恢復協程
         }
+
+    private:
         result_type& result;
         handle_type& handle;
     };
@@ -155,6 +168,7 @@ namespace lite
     {
         auto fn = [&_handle, &_socket, _buffer](result_type& _result)
         {
+            // 獲取回調兩個值並恢復
             _socket.async_read_some(_buffer, asio_callback(_handle, _result));
         };
         return lite::await_value<P, result_type>(_handle, fn);
@@ -173,6 +187,7 @@ namespace lite
     {
         auto fn = [&_handle, &_socket, _buffer](result_type& _result)
         {
+            // 獲取回調兩個值並恢復
             _socket.async_write_some(_buffer, asio_callback(_handle, _result));
         };
         return lite::await_value<P, result_type>(_handle, fn);
