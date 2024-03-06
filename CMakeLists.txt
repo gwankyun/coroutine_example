@@ -1,5 +1,5 @@
 ﻿# cmake最低版本
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.29)
 
 # 項目名
 set(project coroutine_example)
@@ -30,25 +30,33 @@ set(msvc_definitions)
 if(WIN32)
   get_WIN32_WINNT(_WIN32_WINNT)
   cmake_print_variables(_WIN32_WINNT)
+  # Please define _WIN32_WINNT or _WIN32_WINDOWS appropriately.
   list(APPEND msvc_definitions "_WIN32_WINNT=${_WIN32_WINNT}")
 endif()
 
-list(APPEND msvc_definitions "_CRT_SECURE_NOWARNINGS" "_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING")
-
-add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/W4;/MP;/Zc:__cplusplus;/experimental:module;>")
+# warning C4996
+option(disable_c4996 "" ON)
+if(disable_c4996)
+  list(APPEND msvc_definitions "_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING")
+endif()
 
 add_compile_definitions("$<$<CXX_COMPILER_ID:MSVC>:${msvc_definitions}>")
 
-find_package(Boost REQUIRED COMPONENTS context) # 必需
-find_package(spdlog CONFIG) # 可選
+add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/W4;/MP;/Zc:__cplusplus;/experimental:module;>")
 
-add_library(common_required INTERFACE)
+find_package(Boost REQUIRED COMPONENTS context) # 必需
+check_package(Boost)
+
+find_package(spdlog CONFIG) # 可選
+check_package(spdlog)
+
 set(common_required common_required)
+add_library(common_required INTERFACE)
 target_sources(${common_required} INTERFACE
   include/coro.hpp
 )
 target_include_directories(${common_required} INTERFACE include)
-target_compile_features(${common_required} INTERFACE cxx_std_20)
+target_compile_features(${common_required} INTERFACE cxx_std_23)
 target_link_libraries(${common_required} INTERFACE
   Boost::headers
   $<TARGET_NAME_IF_EXISTS:spdlog::spdlog>

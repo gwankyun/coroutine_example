@@ -15,3 +15,13 @@
     set(${version} "0x${ver}" PARENT_SCOPE) # 0x0A00
   endif()
 endfunction()
+
+function(check_package name)
+  message(CHECK_START "Looking for ${name}")
+  if(${name}_FOUND)
+    set(ver ${${name}_VERSION})
+    message(CHECK_PASS "found version \"${ver}\"")
+  else()
+    message(CHECK_FAIL "not found")
+  endif()
+endfunction()
