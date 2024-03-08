@@ -17,7 +17,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${source_dir}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${source_dir}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${source_dir}/lib)
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(common)
 
 cmake_print_variables(CMAKE_SYSTEM)
@@ -50,19 +50,39 @@ check_package(Boost)
 find_package(spdlog CONFIG) # 可選
 check_package(spdlog)
 
+option(use_cxx_23 "" ON)
+set(cxx_std cxx_std_20)
+if(use_cxx_23)
+  set(cxx_std cxx_std_23)
+endif()
+
 set(common_required common_required)
-add_library(common_required INTERFACE)
-target_sources(${common_required} INTERFACE
-  include/coro.hpp
-)
+add_library(${common_required} INTERFACE)
 target_include_directories(${common_required} INTERFACE include)
-target_compile_features(${common_required} INTERFACE cxx_std_23)
+target_compile_features(${common_required} INTERFACE ${cxx_std})
 target_link_libraries(${common_required} INTERFACE
-  Boost::headers
   $<TARGET_NAME_IF_EXISTS:spdlog::spdlog>
 )
 target_compile_definitions(${common_required} INTERFACE
   HAS_SPDLOG=$<TARGET_EXISTS:spdlog::spdlog>
+)
+
+set(coro2_required coro2_required)
+add_library(${coro2_required} INTERFACE)
+target_link_libraries(${coro2_required} INTERFACE
+  Boost::headers
+  Boost::context
+)
+
+set(asio_required asio_required)
+add_library(${asio_required} INTERFACE)
+target_sources(${asio_required} INTERFACE
+  include/coro.hpp
+)
+target_link_libraries(${asio_required} INTERFACE
+  Boost::headers
+  ${common_required}
+  ${coro2_required}
 )
 
 # 服務端
@@ -76,7 +96,7 @@ target_sources(${server} PRIVATE
     FILES
       src/server.cppm
 )
-target_link_libraries(${server} PRIVATE common_required)
+target_link_libraries(${server} PRIVATE ${asio_required})
 
 # 客戶端
 set(client client)
@@ -89,25 +109,28 @@ target_sources(${client}
     FILES
       src/client.cppm
 )
-target_link_libraries(${client} PRIVATE common_required Boost::context)
+target_link_libraries(${client} PRIVATE ${asio_required})
 
 set(main main)
 add_executable(${main})
 target_sources(${main} PRIVATE
   src/main.cpp
 )
-target_link_libraries(${main} PRIVATE common_required)
+target_link_libraries(${main} PRIVATE ${common_required})
 
 set(coro_std coro_std)
 add_executable(${coro_std})
 target_sources(${coro_std} PRIVATE
   src/coro_std.cpp
 )
-target_link_libraries(${coro_std} PRIVATE common_required)
+target_link_libraries(${coro_std} PRIVATE ${common_required})
 
 set(boost_coro2 boost_coro2)
 add_executable(${boost_coro2})
 target_sources(${boost_coro2} PRIVATE
   src/coro2.cppm src/coro2.cpp
 )
-target_link_libraries(${boost_coro2} PRIVATE common_required Boost::context)
+target_link_libraries(${boost_coro2} PRIVATE
+  ${common_required}
+  ${coro2_required}
+)

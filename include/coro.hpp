@@ -58,22 +58,48 @@ enum struct AsyncType
 
 namespace lite
 {
+    struct promise_base
+    {
+        std::suspend_never initial_suspend() { return {}; }
+        std::suspend_never final_suspend() noexcept { return {}; }
+        void unhandled_exception()
+        {
+            std::exit(1);
+        }
+    };
+
+    template <typename T>
     struct task
     {
-        struct promise_type; // std::coroutine_traits要求
+        struct promise_type;
         using handle_type = std::coroutine_handle<promise_type>;
-        struct promise_type
+        struct promise_type : public promise_base
         {
             task get_return_object()
             {
                 return {handle_type::from_promise(*this)};
             }
-            std::suspend_never initial_suspend() { return {}; }
-            std::suspend_never final_suspend() noexcept { return {}; }
-            void return_void() {}
-            void unhandled_exception() { std::exit(1); }
+            void return_value(T _value) { value = _value; } // 調用co_return
+            T value{};
         };
-        handle_type handle; // 協程句柄
+        T get() { return handle.promise().value; }
+        handle_type handle;
+    };
+
+    template <>
+    struct task<void>
+    {
+        struct promise_type;
+        using handle_type = std::coroutine_handle<promise_type>;
+        struct promise_type : public promise_base
+        {
+            task get_return_object()
+            {
+                return {handle_type::from_promise(*this)};
+            }
+            void return_void() {}
+        };
+        handle_type handle;
     };
 
     template <typename P, typename F>
@@ -198,28 +224,4 @@ namespace lite
         };
         return lite::async_resume_value<result_type, P>(_handle, fn);
     }
-
-    template <typename T>
-    struct task_value
-    {
-        struct promise_type;
-        using handle_type = std::coroutine_handle<promise_type>;
-        struct promise_type
-        {
-            task_value get_return_object()
-            {
-                return {handle_type::from_promise(*this)};
-            }
-            std::suspend_never initial_suspend() { return {}; }
-            std::suspend_never final_suspend() noexcept { return {}; }
-            void return_value(T _value) { value = _value; } // 調用co_return
-            void unhandled_exception()
-            {
-                std::exit(1);
-            }
-            T value{};
-        };
-        T get() { return handle.promise().value; }
-        handle_type handle;
-    };
 }

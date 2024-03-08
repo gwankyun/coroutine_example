@@ -4,10 +4,6 @@
 #include <boost/coroutine2/all.hpp>
 module client;
 
-// module;
-
-// module client;
-
 namespace coro2 = boost::coroutines2;
 
 #define CORO_BEGIN(_state) \
@@ -36,19 +32,22 @@ struct SwithContext
     int state = 0;
 };
 
-void coro_swith(std::shared_ptr<SwithContext> _context, std::shared_ptr<socket_t> _socket, error_code_t _error, std::size_t _bytes)
+void coro_switch(std::shared_ptr<SwithContext> _context, std::shared_ptr<socket_t> _socket, error_code_t _error, std::size_t _bytes)
 {
     auto &context = *_context;
     auto &socket = *_socket;
-    CORO_BEGIN(context.state);
+    auto &state = context.state;
+    auto &str = context.str;
+    auto &vec = context.vec;
+    CORO_BEGIN(state);
     // send
     socket.async_write_some(
-        asio::buffer(context.str.c_str(), context.str.size()),
+        asio::buffer(str.c_str(), str.size()),
         [=](error_code_t _error, std::size_t _bytes)
         {
-            coro_swith(_context, _socket, _error, _bytes); // 回調本函数
+            coro_switch(_context, _socket, _error, _bytes); // 回調本函数
         });
-    CORO_RETURN(context.state); // 返回但下次直接跳轉到此處
+    CORO_RETURN(state); // 返回但下次直接跳轉到此處
     if (_error)
     {
         SPDLOG_DBG(INFO, _error.message());
@@ -61,12 +60,12 @@ void coro_swith(std::shared_ptr<SwithContext> _context, std::shared_ptr<socket_t
 
     // recv
     socket.async_read_some(
-        asio::buffer(context.vec.data(), context.vec.size()),
+        asio::buffer(vec.data(), vec.size()),
         [=](error_code_t _error, std::size_t _bytes)
         {
-            coro_swith(_context, _socket, _error, _bytes); // 回調本函数
+            coro_switch(_context, _socket, _error, _bytes); // 回調本函数
         });
-    CORO_RETURN(context.state); // 返回但下次直接跳轉到此處
+    CORO_RETURN(state); // 返回但下次直接跳轉到此處
     if (_error)
     {
         SPDLOG_DBG(INFO, _error.message());
@@ -78,7 +77,7 @@ void coro_swith(std::shared_ptr<SwithContext> _context, std::shared_ptr<socket_t
     }
 
     SPDLOG_DBG(INFO, _bytes);
-    SPDLOG_DBG(INFO, context.vec.data());
+    SPDLOG_DBG(INFO, vec.data());
     CORO_END();
 }
 
@@ -193,10 +192,11 @@ void callback(std::shared_ptr<socket_t> _socket)
         });
 }
 
-lite::task coro_resume(std::shared_ptr<socket_t> _socket)
+lite::task<error_code_t> coro_resume(std::shared_ptr<socket_t> _socket)
 {
     auto &socket = *_socket;
-    using promise_type = lite::task::promise_type;
+    using task_type = lite::task<error_code_t>;
+    using promise_type = task_type::promise_type;
     using handle_type = std::coroutine_handle<promise_type>;
     handle_type handle; // 用於保存協程句柄
 
@@ -220,8 +220,7 @@ lite::task coro_resume(std::shared_ptr<socket_t> _socket)
     // <---------------------------------
     if (error)
     {
-        SPDLOG_DBG(INFO, error.message());
-        co_return;
+        co_return error;
     }
     SPDLOG_DBG(INFO, bytes);
 
@@ -242,17 +241,18 @@ lite::task coro_resume(std::shared_ptr<socket_t> _socket)
     // <---------------------------------
     if (error)
     {
-        SPDLOG_DBG(INFO, error.message());
-        co_return;
+        co_return error;
     }
     SPDLOG_DBG(INFO, bytes);
     SPDLOG_DBG(INFO, vec.data());
+    co_return error;
 }
 
-lite::task coro_resume_value(std::shared_ptr<socket_t> _socket)
+lite::task<error_code_t> coro_resume_value(std::shared_ptr<socket_t> _socket)
 {
     auto &socket = *_socket;
-    using promise_type = lite::task::promise_type;
+    using task_type = lite::task<error_code_t>;
+    using promise_type = task_type::promise_type;
     using handle_type = std::coroutine_handle<promise_type>;
     handle_type handle; // 用於保存協程句柄
 
@@ -277,8 +277,7 @@ lite::task coro_resume_value(std::shared_ptr<socket_t> _socket)
     // <---------------------------------
     if (error)
     {
-        SPDLOG_DBG(INFO, error.message());
-        co_return;
+        co_return error;
     }
     SPDLOG_DBG(INFO, bytes);
 
@@ -298,17 +297,23 @@ lite::task coro_resume_value(std::shared_ptr<socket_t> _socket)
     // <---------------------------------
     if (error)
     {
-        SPDLOG_DBG(INFO, error.message());
-        co_return;
+        co_return error;
     }
     SPDLOG_DBG(INFO, bytes);
     SPDLOG_DBG(INFO, vec.data());
+
+    if (error)
+    {
+        co_return error;
+    }
 }
 
-lite::task coro_return(std::shared_ptr<socket_t> _socket)
+template<typename T = void>
+lite::task<T> coro_return(std::shared_ptr<socket_t> _socket)
 {
     auto &socket = *_socket;
-    using promise_type = lite::task::promise_type;
+    using task_type = lite::task<T>;
+    using promise_type = task_type::promise_type;
     using handle_type = std::coroutine_handle<promise_type>;
     handle_type handle; //
 
@@ -320,8 +325,15 @@ lite::task coro_return(std::shared_ptr<socket_t> _socket)
         handle, socket, asio::buffer(str.c_str(), str.size()));
     if (error)
     {
-        SPDLOG_DBG(INFO, error.message());
-        co_return;
+        if constexpr (std::is_void_v<T>)
+        {
+            SPDLOG_DBG(INFO, error.message());
+            co_return;
+        }
+        else
+        {
+            co_return error;
+        }
     }
     SPDLOG_DBG(INFO, bytes);
 
@@ -330,43 +342,28 @@ lite::task coro_return(std::shared_ptr<socket_t> _socket)
         handle, socket, asio::buffer(vec.data(), vec.size()));
     if (error)
     {
+        if constexpr (std::is_void_v<T>)
+        {
+            SPDLOG_DBG(INFO, error.message());
+            co_return;
+        }
+        else
+        {
+            co_return error;
+        }
+    }
+    SPDLOG_DBG(INFO, bytes);
+    SPDLOG_DBG(INFO, vec.data());
+
+    if constexpr (std::is_void_v<T>)
+    {
         SPDLOG_DBG(INFO, error.message());
         co_return;
     }
-    SPDLOG_DBG(INFO, bytes);
-    SPDLOG_DBG(INFO, vec.data());
-}
-
-lite::task_value<error_code_t> coro_return_value(std::shared_ptr<socket_t> _socket)
-{
-    auto &socket = *_socket;
-    using promise_type = lite::task_value<error_code_t>::promise_type;
-    using handle_type = std::coroutine_handle<promise_type>;
-    handle_type handle; // 用於保存協程句柄
-
-    error_code_t error;
-    std::size_t bytes;
-
-    std::string str{"client."};
-    std::tie(error, bytes) = co_await lite::async_write(
-        handle, socket, asio::buffer(str.c_str(), str.size()));
-    if (error)
+    else
     {
         co_return error;
     }
-    SPDLOG_DBG(INFO, bytes);
-
-    std::vector<char> vec(1024, '\0');
-    std::tie(error, bytes) = co_await lite::async_read(
-        handle, socket, asio::buffer(vec.data(), vec.size()));
-    if (error)
-    {
-        co_return error;
-    }
-    SPDLOG_DBG(INFO, bytes);
-    SPDLOG_DBG(INFO, vec.data());
-
-    co_return error;
 }
 
 void on_connect(
@@ -392,17 +389,25 @@ void on_connect(
         callback(_socket); // 回調版本
         break;
     case AsyncType::CoroResume:
-        coro_resume(_socket); // 協程包裹回調
+        error = coro_resume(_socket).get(); // 協程包裹回調
+        if (error)
+        {
+            SPDLOG_DBG(WARN, error.message());
+        }
         break;
     case AsyncType::CoroResumeValue:
-        coro_resume_value(_socket);
+        error = coro_resume_value(_socket).get();
+        if (error)
+        {
+            SPDLOG_DBG(WARN, error.message());
+        }
         break;
     case AsyncType::CoroReturn:
         coro_return(_socket); // 協程封裝回調
         break;
     case AsyncType::CoroReturnValue:
     {
-        error = coro_return_value(_socket).get(); // 協程封裝回調返回值
+        error = coro_return<error_code_t>(_socket).get(); // 協程封裝回調返回值
         if (error)
         {
             SPDLOG_DBG(WARN, error.message());
@@ -412,7 +417,7 @@ void on_connect(
     case AsyncType::CoroSwith: // switch無棧協程
     {
         auto state = std::make_shared<SwithContext>();
-        coro_swith(state, _socket, error, 0U);
+        coro_switch(state, _socket, error, 0U);
         break;
     }
     case AsyncType::BoostCoro2: // boost有棧协程
