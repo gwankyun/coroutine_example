@@ -35,14 +35,23 @@ if(WIN32)
 endif()
 
 # warning C4996
-option(disable_c4996 "" ON)
-if(disable_c4996)
+option(disable_C4996 "" ON)
+if(disable_C4996)
   list(APPEND msvc_definitions "_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING")
 endif()
 
 add_compile_definitions("$<$<CXX_COMPILER_ID:MSVC>:${msvc_definitions}>")
 
-add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/W4;/MP;/Zc:__cplusplus;/experimental:module;>")
+set(msvc_options)
+list(APPEND msvc_options "/W4" "/MP" "/Zc:__cplusplus" "/experimental:module")
+
+# warning LNK4099
+option(disable_LNK4996 "" ON)
+if(disable_LNK4996)
+  list(APPEND msvc_options "/Z7")
+endif()
+
+add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:${msvc_options}>")
 
 find_package(Boost REQUIRED COMPONENTS context) # 必需
 check_package(Boost)
@@ -94,7 +103,7 @@ target_sources(${server} PRIVATE
   PRIVATE
   FILE_SET CXX_MODULES
     FILES
-      src/server.cppm
+      src/server.ixx
 )
 target_link_libraries(${server} PRIVATE ${asio_required})
 
@@ -107,7 +116,7 @@ target_sources(${client}
   PRIVATE
   FILE_SET CXX_MODULES
     FILES
-      src/client.cppm
+      src/client.ixx
 )
 target_link_libraries(${client} PRIVATE ${asio_required})
 
@@ -128,7 +137,7 @@ target_link_libraries(${coro_std} PRIVATE ${common_required})
 set(boost_coro2 boost_coro2)
 add_executable(${boost_coro2})
 target_sources(${boost_coro2} PRIVATE
-  src/coro2.cppm src/coro2.cpp
+  src/coro2.ixx src/coro2.cpp
 )
 target_link_libraries(${boost_coro2} PRIVATE
   ${common_required}
