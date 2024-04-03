@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.29)
 set(project coroutine_example)
 project(${project})
 
-include(CMakePrintHelpers)
+include(CMakePrintHelpers) # cmake_print_variables
 
 # 輸出目錄
 set(source_dir ${CMAKE_CURRENT_SOURCE_DIR})
@@ -106,6 +106,8 @@ target_sources(${server} PRIVATE
       src/server.ixx
 )
 target_link_libraries(${server} PRIVATE ${asio_required})
+
+add_subdirectory(callback)
 
 # 客戶端
 set(client client)

@@ -1,0 +1,42 @@
+﻿cmake_print_variables(CMAKE_SOURCE_DIR)
+cmake_print_variables(CMAKE_CURRENT_SOURCE_DIR)
+
+set(callback_required callback_required)
+add_library(${callback_required} INTERFACE)
+target_sources(${callback_required} INTERFACE
+  ${CMAKE_SOURCE_DIR}/include/log.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/common.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/data.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/common.cpp
+)
+target_include_directories(${callback_required}
+  INTERFACE
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(${callback_required} INTERFACE
+  Boost::headers
+  spdlog::spdlog
+)
+
+set(server_callback server_callback)
+add_executable(${server_callback})
+target_sources(${server_callback}
+  PRIVATE
+    ${CMAKE_SOURCE_DIR}/src/server/callback.cpp
+)
+target_link_libraries(${server_callback}
+  PRIVATE
+    ${callback_required}
+)
+
+set(client_callback client_callback)
+add_executable(${client_callback})
+target_sources(${client_callback}
+  PRIVATE
+    ${CMAKE_SOURCE_DIR}/src/client/callback.cpp
+)
+target_link_libraries(${client_callback}
+  PRIVATE
+    ${callback_required}
+)
