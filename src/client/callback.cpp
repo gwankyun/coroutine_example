@@ -16,40 +16,21 @@ void on_read(error_code_t _error, std::size_t _bytes, std::shared_ptr<DataBase> 
     SPDLOG_INFO(DBG(_bytes));
     offset += _bytes;
 
-    if (buffer[offset - 1] == '.')
+    if (buffer[offset - 1] == '.' || _bytes == 0)
     {
         SPDLOG_INFO(DBG(buffer.data()));
         socket.close();
     }
     else
     {
-        socket.async_read_some(
-            asio::buffer(buffer.data(), buffer.size()) += offset,
-            [&, _data](error_code_t _error, std::size_t _bytes)
-            {
-                on_read(_error, _bytes, _data);
-            });
+        async_read(_data, 4, on_read);
     }
 }
 
 void callback(std::shared_ptr<DataBase> _data)
 {
-    auto &data = SocketData::from(_data);
-    auto &socket = data.socket;
-    auto &buffer = data.buffer;
-    auto &offset = data.offset;
-
     std::string str{"client."};
-    buffer.clear();
-    std::copy_n(str.begin(), str.size(), std::back_inserter(buffer));
-    offset = 0;
-
-    socket.async_write_some(
-        asio::buffer(buffer.data(), buffer.size()) += offset,
-        [&, _data](error_code_t _error, std::size_t _bytes)
-        {
-            on_write(_error, _bytes, _data);
-        });
+    async_write(_data, asio::buffer(str.c_str(), str.size()), on_write);
 }
 
 void on_connect(
@@ -62,28 +43,26 @@ void on_connect(
         return;
     }
 
-    auto remote_endpoint = _socket->remote_endpoint();
-    auto ip = remote_endpoint.address().to_string();
-    auto port = remote_endpoint.port();
-    SPDLOG_INFO(DBG(ip));
-    SPDLOG_INFO(DBG(port));
-
     callback(std::make_shared<SocketData>(std::move(*_socket))); // 回調版本
 }
 
 int main()
 {
-    spdlog::set_pattern("[%C-%m-%d %T.%e] [%^%L%$] [%-20!!:%4#] %v");
+    spdlog::set_pattern("[%C-%m-%d %T.%e] [%^%L%$] [%-10!!:%4#] %v");
 
     asio::io_context io_context;
 
     namespace ip = asio::ip;
+    auto address = ip::make_address("127.0.0.1");
+    auto endpoint = ip::tcp::endpoint(address, 8888);
 
+    std::vector<std::shared_ptr<socket_t>> socket_vec(2);
+
+    for (auto& socket : socket_vec)
     {
-        auto socket = std::make_shared<socket_t>(io_context);
-        auto address = ip::make_address("127.0.0.1");
+        socket = std::make_shared<socket_t>(io_context);
         socket->async_connect(
-            ip::tcp::endpoint(address, 8888),
+            endpoint,
             [socket](error_code_t _error)
             {
                 on_connect(_error, socket);

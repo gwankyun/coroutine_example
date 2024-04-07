@@ -4,10 +4,9 @@
 #include <memory> // std::shared_ptr
 #define BOOST_ASIO_NO_DEPRECATED 1
 #include <boost/asio.hpp>   // boost::asio
-#include <boost/system.hpp> // boost::system::error_code
+// #include <boost/system.hpp> // boost::system::error_code
 #include "log.hpp"
 
-namespace asio = boost::asio;
 using acceptor_t = asio::ip::tcp::acceptor;
 using socket_t = asio::ip::tcp::socket;
 

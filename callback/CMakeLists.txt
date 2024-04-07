@@ -9,6 +9,7 @@ target_sources(${callback_required} INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/include/data.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/common.cpp
 )
+target_compile_features(${callback_required} INTERFACE cxx_std_23)
 target_include_directories(${callback_required}
   INTERFACE
     ${CMAKE_SOURCE_DIR}/include

@@ -1,62 +1,44 @@
 ﻿#include "data.hpp"
+#include <cstddef>
 
 void on_read(error_code_t _error, std::size_t _bytes, std::shared_ptr<DataBase> _data)
 {
+    auto &data = SocketData::from(_data);
+    auto &socket = data.socket;
+    auto remote_endpoint = socket.remote_endpoint();
+    auto ip = remote_endpoint.address().to_string();
+    auto port = remote_endpoint.port();
     if (_error)
     {
-        SPDLOG_WARN(DBG(_error.message()));
+        SPDLOG_WARN("({} : {}) _error: {}", ip, port, _error.message());
         return;
     }
 
-    auto &data = SocketData::from(_data);
-    auto &socket = data.socket;
     auto &buffer = data.buffer;
     auto &offset = data.offset;
 
-    SPDLOG_INFO(DBG(_bytes));
+    SPDLOG_INFO("({} : {}) _bytes: {}", ip, port, _bytes);
     offset += _bytes;
 
     if (buffer[offset - 1] == '.')
     {
-        SPDLOG_INFO(DBG(buffer.data()));
+        SPDLOG_INFO("({} : {}) : {}", ip, port, buffer.data());
         std::string str{"server."};
-        buffer.clear();
-        std::copy_n(str.begin(), str.size(), std::back_inserter(buffer));
-        offset = 0;
-
-        socket.async_write_some(
-            asio::buffer(buffer.data(), buffer.size()) += offset,
-            [&, _data](error_code_t _error, std::size_t _bytes)
-            {
-                on_write(_error, _bytes, _data);
-            });
+        async_write(_data, asio::buffer(str.c_str(), str.size()), on_write);
     }
     else
     {
-        socket.async_read_some(
-            asio::buffer(buffer.data(), buffer.size()) += offset,
-            [&, _data](error_code_t _error, std::size_t _bytes)
-            {
-                on_read(_error, _bytes, _data);
-            });
+        async_read(_data, 4, on_read);
     }
 }
 
 void callback(std::shared_ptr<DataBase> _data)
 {
     auto &data = SocketData::from(_data);
-    auto &socket = data.socket;
-    auto &buffer = data.buffer;
     auto &offset = data.offset;
 
     offset = 0;
-    buffer.resize(1024, '\0');
-    socket.async_read_some(
-        asio::buffer(buffer.data(), buffer.size()) += offset,
-        [&, _data](error_code_t _error, std::size_t _bytes)
-        {
-            on_read(_error, _bytes, _data);
-        });
+    async_read(_data, 4, on_read);
 }
 
 void on_accept(
@@ -81,15 +63,14 @@ void on_accept(
     auto remote_endpoint = _socket->remote_endpoint();
     auto ip = remote_endpoint.address().to_string();
     auto port = remote_endpoint.port();
-    SPDLOG_INFO(DBG(ip));
-    SPDLOG_INFO(DBG(port));
+    SPDLOG_INFO("({} : {})", ip, port);
 
     callback(std::make_shared<SocketData>(std::move(*_socket))); // 回調版本
 }
 
 int main()
 {
-    spdlog::set_pattern("[%C-%m-%d %T.%e] [%^%L%$] [%-20!!:%4#] %v");
+    spdlog::set_pattern("[%C-%m-%d %T.%e] [%^%L%$] [%-10!!:%4#] %v");
 
     asio::io_context io_context;
     using asio::ip::tcp;
