@@ -108,6 +108,7 @@ target_sources(${server} PRIVATE
 target_link_libraries(${server} PRIVATE ${asio_required})
 
 add_subdirectory(callback)
+add_subdirectory(switch)
 
 # 客戶端
 set(client client)

@@ -1,6 +1,18 @@
 ﻿cmake_print_variables(CMAKE_SOURCE_DIR)
 cmake_print_variables(CMAKE_CURRENT_SOURCE_DIR)
 
+set(callback_base_required callback_base_required)
+add_library(${callback_base_required} INTERFACE)
+target_include_directories(${callback_base_required}
+  INTERFACE
+    # ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(${callback_base_required} INTERFACE
+  Boost::headers
+  spdlog::spdlog
+)
+
 set(callback_required callback_required)
 add_library(${callback_required} INTERFACE)
 target_sources(${callback_required} INTERFACE
@@ -18,6 +30,21 @@ target_include_directories(${callback_required}
 target_link_libraries(${callback_required} INTERFACE
   Boost::headers
   spdlog::spdlog
+)
+
+set(simple_callback simple_callback)
+add_executable(${simple_callback})
+target_sources(${simple_callback}
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/simple.cpp
+)
+target_include_directories(${simple_callback}
+  PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+)
+target_link_libraries(${simple_callback}
+  PRIVATE
+    ${callback_base_required}
 )
 
 set(server_callback server_callback)

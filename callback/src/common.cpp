@@ -23,7 +23,7 @@ void on_write(error_code_t _error, std::size_t _bytes, std::shared_ptr<DataBase>
 
     if (offset == buffer.size())
     {
-        SPDLOG_WARN("({} : {}) write fininish!", ip, port);
+        SPDLOG_INFO("({} : {}) write fininish!", ip, port);
 
         offset = 0;
         async_read(_data, 4, on_read);
