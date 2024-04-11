@@ -31,45 +31,45 @@ target_link_libraries(${switch_required} INTERFACE
   spdlog::spdlog
 )
 
-set(simple_switch simple_switch)
-add_executable(${simple_switch})
-target_sources(${simple_switch}
+set(switch_server switch_server)
+add_executable(${switch_server})
+target_sources(${switch_server}
   PRIVATE
     ${CMAKE_SOURCE_DIR}/include/connection.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/simple.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/server.cpp
 )
-target_include_directories(${simple_switch}
+target_include_directories(${switch_server}
   PRIVATE
     ${CMAKE_SOURCE_DIR}/include
 )
-target_link_libraries(${simple_switch}
+target_link_libraries(${switch_server}
   PRIVATE
     ${callback_base_required}
 )
-target_link_libraries(${simple_switch} PRIVATE
+target_link_libraries(${switch_server} PRIVATE
   Boost::headers
   spdlog::spdlog
 )
-target_compile_features(${simple_switch} PRIVATE cxx_std_23)
+target_compile_features(${switch_server} PRIVATE cxx_std_23)
 
-set(server_switch server_switch)
-add_executable(${server_switch})
-target_sources(${server_switch}
-  PRIVATE
-    ${CMAKE_SOURCE_DIR}/src/server/switch.cpp
-)
-target_link_libraries(${server_switch}
-  PRIVATE
-    ${switch_required}
-)
+# set(server_switch server_switch)
+# add_executable(${server_switch})
+# target_sources(${server_switch}
+#   PRIVATE
+#     ${CMAKE_SOURCE_DIR}/src/server/switch.cpp
+# )
+# target_link_libraries(${server_switch}
+#   PRIVATE
+#     ${switch_required}
+# )
 
-set(client_switch client_switch)
-add_executable(${client_switch})
-target_sources(${client_switch}
-  PRIVATE
-    ${CMAKE_SOURCE_DIR}/src/client/switch.cpp
-)
-target_link_libraries(${client_switch}
-  PRIVATE
-    ${switch_required}
-)
+# set(client_switch client_switch)
+# add_executable(${client_switch})
+# target_sources(${client_switch}
+#   PRIVATE
+#     ${CMAKE_SOURCE_DIR}/src/client/switch.cpp
+# )
+# target_link_libraries(${client_switch}
+#   PRIVATE
+#     ${switch_required}
+# )

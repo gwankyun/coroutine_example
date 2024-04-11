@@ -35,7 +35,7 @@ void accept_socket(
     };
 
     CORO_BEGIN(state);
-    
+
     _acceptor.async_accept(socket, cb);
     CORO_YIELD(state);
 
@@ -77,7 +77,7 @@ void accept_socket(
     SPDLOG_INFO("{} : {}", get_info(data), buffer.data());
 
     offset = 0;
-    buffer = data.get_write_buffer();
+    buffer = to_buffer("server.");
     while (offset != buffer.size())
     {
         socket.async_write_some(asio::buffer(buffer) += offset, cb);
@@ -102,8 +102,7 @@ void accept_socket(
 
 int main()
 {
-    // spdlog::set_pattern("[%C-%m-%d %T.%e] [%^%L%$] [%-10!!:%4#] %v");
-    spdlog::set_pattern("[%T.%e] [%^%L%$] [%-10!!:%4#] %v");
+    spdlog::set_pattern("[%C-%m-%d %T.%e] [%^%L%$] [%-10!!:%4#] %v");
 
     asio::io_context io_context;
     using asio::ip::tcp;

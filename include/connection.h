@@ -1,4 +1,5 @@
-﻿#include <vector>
+﻿#pragma once
+#include <vector>
 #include <boost/system.hpp> // boost::system::error_code
 #include <boost/asio.hpp>
 #include <cstddef>
@@ -38,18 +39,16 @@ struct Connection : public ConnectionBase
         return buffer[offset - 1] == '.';
     }
 
-    buffer_t get_write_buffer()
-    {
-        std::string str{"server."};
-        buffer_t buf;
-        std::copy_n(str.c_str(), str.size(), std::back_inserter(buf));
-        return buf;
-    }
-
     /// @brief 基類轉引用
     static Connection &from(std::shared_ptr<ConnectionBase> _base)
     {
         return *std::dynamic_pointer_cast<Connection>(_base);
+    }
+
+    /// @brief 基類轉引用
+    static Connection &from(std::unique_ptr<ConnectionBase> &_base)
+    {
+        return *dynamic_cast<Connection*>(_base.get());
     }
 };
 
@@ -61,4 +60,11 @@ inline std::string get_info(TcpConnection& _data)
     auto ip = remote_endpoint.address().to_string();
     auto port = remote_endpoint.port();
     return std::format("({} : {})", ip, port);
+}
+
+ConnectionBase::buffer_t to_buffer(std::string _str)
+{
+    ConnectionBase::buffer_t buf;
+    std::copy_n(_str.c_str(), _str.size(), std::back_inserter(buf));
+    return buf;
 }
