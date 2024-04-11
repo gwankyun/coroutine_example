@@ -1,8 +1,8 @@
 ﻿#include "data.hpp"
 
-void on_read(error_code_t _error, std::size_t _bytes, std::shared_ptr<DataBase> _data);
+void on_read(error_code_t _error, std::size_t _bytes, std::shared_ptr<ConnectionBase> _data);
 
-void on_write(error_code_t _error, std::size_t _bytes, std::shared_ptr<DataBase> _data)
+void on_write(error_code_t _error, std::size_t _bytes, std::shared_ptr<ConnectionBase> _data)
 {
     auto &data = SocketData::from(_data);
     auto &socket = data.socket;
@@ -35,7 +35,7 @@ void on_write(error_code_t _error, std::size_t _bytes, std::shared_ptr<DataBase>
 }
 
 
-void async_read(std::shared_ptr<DataBase> _data, std::size_t _size, on_callback_t _on_read)
+void async_read(std::shared_ptr<ConnectionBase> _data, std::size_t _size, on_callback_t _on_read)
 {
     auto &data = SocketData::from(_data);
     auto &socket = data.socket;
@@ -51,7 +51,7 @@ void async_read(std::shared_ptr<DataBase> _data, std::size_t _size, on_callback_
         });
 }
 
-void async_write(std::shared_ptr<DataBase> _data, asio::const_buffer _buffer, on_callback_t _on_write)
+void async_write(std::shared_ptr<ConnectionBase> _data, asio::const_buffer _buffer, on_callback_t _on_write)
 {
     auto &data = SocketData::from(_data);
     auto &socket = data.socket;

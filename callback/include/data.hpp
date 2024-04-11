@@ -11,13 +11,13 @@ using acceptor_t = asio::ip::tcp::acceptor;
 using socket_t = asio::ip::tcp::socket;
 
 template <typename T>
-struct Data : public DataBase
+struct Data : public ConnectionBase
 {
     Data(T &&_socket) : socket(std::move(_socket)) {}
     ~Data() override = default;
     T socket;
 
-    static Data& from(std::shared_ptr<DataBase> _base)
+    static Data& from(std::shared_ptr<ConnectionBase> _base)
     {
         return *std::dynamic_pointer_cast<Data>(_base);
     }

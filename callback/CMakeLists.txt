@@ -5,7 +5,6 @@ set(callback_base_required callback_base_required)
 add_library(${callback_base_required} INTERFACE)
 target_include_directories(${callback_base_required}
   INTERFACE
-    # ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 target_link_libraries(${callback_base_required} INTERFACE
@@ -36,6 +35,7 @@ set(simple_callback simple_callback)
 add_executable(${simple_callback})
 target_sources(${simple_callback}
   PRIVATE
+    ${CMAKE_SOURCE_DIR}/include/connection.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/simple.cpp
 )
 target_include_directories(${simple_callback}
@@ -46,6 +46,7 @@ target_link_libraries(${simple_callback}
   PRIVATE
     ${callback_base_required}
 )
+target_compile_features(${simple_callback} PRIVATE cxx_std_23)
 
 set(server_callback server_callback)
 add_executable(${server_callback})

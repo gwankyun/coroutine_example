@@ -1,7 +1,7 @@
 ﻿#include "data.hpp"
 #include <cstddef>
 
-void on_read(error_code_t _error, std::size_t _bytes, std::shared_ptr<DataBase> _data)
+void on_read(error_code_t _error, std::size_t _bytes, std::shared_ptr<ConnectionBase> _data)
 {
     auto &data = SocketData::from(_data);
     auto &socket = data.socket;
@@ -32,7 +32,7 @@ void on_read(error_code_t _error, std::size_t _bytes, std::shared_ptr<DataBase> 
     }
 }
 
-void callback(std::shared_ptr<DataBase> _data)
+void callback(std::shared_ptr<ConnectionBase> _data)
 {
     auto &data = SocketData::from(_data);
     auto &offset = data.offset;

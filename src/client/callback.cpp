@@ -1,6 +1,6 @@
 ﻿#include "data.hpp"
 
-void on_read(error_code_t _error, std::size_t _bytes, std::shared_ptr<DataBase> _data)
+void on_read(error_code_t _error, std::size_t _bytes, std::shared_ptr<ConnectionBase> _data)
 {
     if (_error)
     {
@@ -27,7 +27,7 @@ void on_read(error_code_t _error, std::size_t _bytes, std::shared_ptr<DataBase> 
     }
 }
 
-void callback(std::shared_ptr<DataBase> _data)
+void callback(std::shared_ptr<ConnectionBase> _data)
 {
     std::string str{"client."};
     async_write(_data, asio::buffer(str.c_str(), str.size()), on_write);

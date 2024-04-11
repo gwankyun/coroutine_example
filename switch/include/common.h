@@ -36,10 +36,10 @@ namespace asio = boost::asio;
 using acceptor_t = asio::ip::tcp::acceptor;
 using socket_t = asio::ip::tcp::socket;
 
-struct Data
+struct Connection
 {
-    Data(socket_t &&_socket) : socket(std::move(_socket)) {}
-    ~Data() = default;
+    Connection(socket_t &&_socket) : socket(std::move(_socket)) {}
+    ~Connection() = default;
     using buffer_t = std::vector<char>;
     buffer_t buffer;
     std::size_t offset = 0;
@@ -47,7 +47,7 @@ struct Data
     int state = 0;
 };
 
-using on_callback_t = void (*)(Data& _data);
+using on_callback_t = void (*)(Connection& _data);
 
 struct AcceptData
 {

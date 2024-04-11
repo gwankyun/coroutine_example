@@ -1,6 +1,17 @@
 ﻿cmake_print_variables(CMAKE_SOURCE_DIR)
 cmake_print_variables(CMAKE_CURRENT_SOURCE_DIR)
 
+# set(callback_base_required callback_base_required)
+# add_library(${callback_base_required} INTERFACE)
+# target_include_directories(${callback_base_required}
+#   INTERFACE
+#     ${CMAKE_CURRENT_SOURCE_DIR}/include
+# )
+# target_link_libraries(${callback_base_required} INTERFACE
+#   Boost::headers
+#   spdlog::spdlog
+# )
+
 set(switch_required switch_required)
 add_library(${switch_required} INTERFACE)
 target_sources(${switch_required} INTERFACE
@@ -19,6 +30,27 @@ target_link_libraries(${switch_required} INTERFACE
   Boost::headers
   spdlog::spdlog
 )
+
+set(simple_switch simple_switch)
+add_executable(${simple_switch})
+target_sources(${simple_switch}
+  PRIVATE
+    ${CMAKE_SOURCE_DIR}/include/connection.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/simple.cpp
+)
+target_include_directories(${simple_switch}
+  PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+)
+target_link_libraries(${simple_switch}
+  PRIVATE
+    ${callback_base_required}
+)
+target_link_libraries(${simple_switch} PRIVATE
+  Boost::headers
+  spdlog::spdlog
+)
+target_compile_features(${simple_switch} PRIVATE cxx_std_23)
 
 set(server_switch server_switch)
 add_executable(${server_switch})

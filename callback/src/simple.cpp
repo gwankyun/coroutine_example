@@ -1,173 +1,119 @@
 ﻿#include "log.hpp"
-#include <vector>
-#include <boost/system.hpp> // boost::system::error_code
-#include <boost/asio.hpp>
-#include <cstddef>
+#include "connection.h"
+#include <functional>
 
-using error_code_t = boost::system::error_code;
-namespace asio = boost::asio;
+using callback_t = void (*)(error_code_t _error, std::size_t _bytes, std::shared_ptr<ConnectionBase> _connection);
 
-using acceptor_t = asio::ip::tcp::acceptor;
-using socket_t = asio::ip::tcp::socket;
-
-struct DataBase
+auto callback =
+    [](std::shared_ptr<ConnectionBase> _connection, callback_t _cb)
 {
-    DataBase() = default;
-    virtual ~DataBase() = default;
-    using buffer_t = std::vector<char>;
-    buffer_t buffer;
-    std::size_t offset = 0;
-};
-
-template <typename T>
-struct Data : public DataBase
-{
-    Data(T &&_socket) : socket(std::move(_socket)) {}
-    ~Data() override = default;
-    T socket;
-
-    static Data &from(std::shared_ptr<DataBase> _base)
+    return [_connection, _cb](error_code_t _error, std::size_t _bytes)
     {
-        return *std::dynamic_pointer_cast<Data>(_base);
-    }
+        _cb(_error, _bytes, _connection);
+    };
 };
 
-using SocketData = Data<socket_t>;
+void on_write(error_code_t _error, std::size_t _bytes, std::shared_ptr<ConnectionBase> _connection);
 
-void on_write(error_code_t _error, std::size_t _bytes, std::shared_ptr<DataBase> _data);
-
-void on_read(error_code_t _error, std::size_t _bytes, std::shared_ptr<DataBase> _data)
+void on_read(error_code_t _error, std::size_t _bytes, std::shared_ptr<ConnectionBase> _connection)
 {
-    auto &data = SocketData::from(_data);
-    auto &socket = data.socket;
-    auto remote_endpoint = socket.remote_endpoint();
-    auto ip = remote_endpoint.address().to_string();
-    auto port = remote_endpoint.port();
+    auto &conn = TcpConnection::from(_connection);
+    auto &socket = conn.socket;
     if (_error)
     {
-        SPDLOG_WARN("({} : {}) _error: {}", ip, port, _error.message());
+        SPDLOG_WARN("{} _error: {}", get_info(conn), _error.message());
         return;
     }
 
-    auto &buffer = data.buffer;
-    auto &offset = data.offset;
+    auto &buffer = conn.buffer;
+    auto &offset = conn.offset;
 
-    SPDLOG_INFO("({} : {}) _bytes: {}", ip, port, _bytes);
+    SPDLOG_INFO("{} _bytes: {}", get_info(conn), _bytes);
     offset += _bytes;
 
-    if (buffer[offset - 1] == '.')
+    if (conn.read_done())
     {
-        SPDLOG_INFO("({} : {}) : {}", ip, port, buffer.data());
-        std::string str{"server."};
+        SPDLOG_INFO("{} : {}", get_info(conn), buffer.data());
 
-        buffer.clear();
         offset = 0;
-        std::copy_n(str.c_str(), str.size(), std::back_inserter(buffer));
+        buffer = conn.get_write_buffer();
         socket.async_write_some(
             asio::buffer(buffer.data(), buffer.size()) += offset,
-            [_data](error_code_t _error, std::size_t _bytes)
-            {
-                on_write(_error, _bytes, _data);
-            });
+            callback(_connection, on_write));
     }
     else
     {
-        buffer.resize(offset + 4, '\0');
+        buffer.resize(offset + conn.per_read_size, '\0');
         socket.async_read_some(
             asio::buffer(buffer.data(), buffer.size()) += offset,
-            [_data](error_code_t _error, std::size_t _bytes)
-            {
-                on_read(_error, _bytes, _data);
-            });
+            callback(_connection, on_read));
     }
 }
 
-void on_write(error_code_t _error, std::size_t _bytes, std::shared_ptr<DataBase> _data)
+void on_write(error_code_t _error, std::size_t _bytes, std::shared_ptr<ConnectionBase> _connection)
 {
-    auto &data = SocketData::from(_data);
-    auto &socket = data.socket;
-    auto &buffer = data.buffer;
-    auto &offset = data.offset;
-    auto remote_endpoint = socket.remote_endpoint();
-    auto ip = remote_endpoint.address().to_string();
-    auto port = remote_endpoint.port();
+    auto &conn = TcpConnection::from(_connection);
+    auto &socket = conn.socket;
+    auto &buffer = conn.buffer;
+    auto &offset = conn.offset;
     if (_error)
     {
-        SPDLOG_WARN("({} : {}) _error: {}", ip, port, _error.message());
+        SPDLOG_WARN("{} _error: {}", get_info(conn), _error.message());
         return;
     }
 
-    SPDLOG_INFO("({} : {}) _bytes: {}", ip, port, _bytes);
+    SPDLOG_INFO("{} _bytes: {}", get_info(conn), _bytes);
 
     offset += _bytes;
 
     if (offset == buffer.size())
     {
-        SPDLOG_INFO("({} : {}) write fininish!", ip, port);
+        SPDLOG_INFO("{} write fininish!", get_info(conn));
 
         offset = 0;
-        buffer.resize(offset + 4, '\0');
+        buffer.resize(offset + conn.per_read_size, '\0');
         socket.async_read_some(
             asio::buffer(buffer.data(), buffer.size()) += offset,
-            [_data](error_code_t _error, std::size_t _bytes)
-            {
-                on_read(_error, _bytes, _data);
-            });
+            callback(_connection, on_read));
     }
     else
     {
         socket.async_write_some(
             asio::buffer(buffer.data(), buffer.size()) += offset,
-            [_data](error_code_t _error, std::size_t _bytes)
-            {
-                on_write(_error, _bytes, _data);
-            });
+            callback(_connection, on_write));
     }
-}
-
-void callback(std::shared_ptr<DataBase> _data)
-{
-    auto &data = SocketData::from(_data);
-    auto &socket = data.socket;
-    auto &buffer = data.buffer;
-    auto &offset = data.offset;
-
-    offset = 0;
-
-    buffer.resize(offset + 4, '\0');
-    socket.async_read_some(
-        asio::buffer(buffer.data(), buffer.size()) += offset,
-        [_data](error_code_t _error, std::size_t _bytes)
-        {
-            on_read(_error, _bytes, _data);
-        });
 }
 
 void on_accept(
     error_code_t _error,
     acceptor_t &_acceptor,
-    std::shared_ptr<socket_t> _socket)
+    std::shared_ptr<ConnectionBase> _connection)
 {
     if (_error)
     {
         SPDLOG_WARN(DBG(_error.message()));
         return;
     }
+    auto &conn = TcpConnection::from(_connection);
+    auto &socket = conn.socket;
+    auto &buffer = conn.buffer;
+    auto &offset = conn.offset;
 
-    auto newSocket = std::make_shared<socket_t>(_acceptor.get_executor());
+    auto newData = std::make_shared<TcpConnection>(_acceptor.get_executor());
     _acceptor.async_accept(
-        *newSocket,
-        [newSocket, &_acceptor](error_code_t error)
+        newData->socket,
+        [newData, &_acceptor](error_code_t error)
         {
-            on_accept(error, _acceptor, newSocket);
+            on_accept(error, _acceptor, newData);
         });
 
-    auto remote_endpoint = _socket->remote_endpoint();
-    auto ip = remote_endpoint.address().to_string();
-    auto port = remote_endpoint.port();
-    SPDLOG_INFO("({} : {})", ip, port);
+    SPDLOG_INFO("{}", get_info(conn));
 
-    callback(std::make_shared<SocketData>(std::move(*_socket))); // 回調版本
+    offset = 0;
+    buffer.resize(offset + conn.per_read_size, '\0');
+    socket.async_read_some(
+        asio::buffer(buffer.data(), buffer.size()) += offset,
+        callback(_connection, on_read));
 }
 
 int main()
@@ -182,12 +128,12 @@ int main()
         tcp::endpoint(tcp::v4(), 8888));
 
     {
-        auto socket = std::make_shared<socket_t>(io_context);
+        auto conn = std::make_shared<TcpConnection>(io_context);
         acceptor.async_accept(
-            *socket,
-            [socket, &acceptor](error_code_t error)
+            conn->socket,
+            [conn, &acceptor](error_code_t error)
             {
-                on_accept(error, acceptor, socket);
+                on_accept(error, acceptor, conn);
             });
     }
 
