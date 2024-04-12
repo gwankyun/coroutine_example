@@ -109,6 +109,7 @@ target_link_libraries(${server} PRIVATE ${asio_required})
 
 add_subdirectory(callback)
 add_subdirectory(switch)
+add_subdirectory(coroutine2)
 
 # 客戶端
 set(client client)

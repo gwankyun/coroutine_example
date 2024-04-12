@@ -16,6 +16,15 @@
 
 #define CORO_END() }
 
+    // bool read_done()
+    // {
+    //     if (offset <= 0)
+    //     {
+    //         return false;
+    //     }
+    //     return buffer[offset - 1] == '.';
+    // }
+
 void accept_socket(
     error_code_t _error,
     std::size_t _bytes,
