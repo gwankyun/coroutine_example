@@ -1,29 +1,31 @@
 ﻿#include "callback.h"
 
 void on_read(error_code_t _error, std::size_t _bytes,
-             std::shared_ptr<ConnectionBase> _connection)
+    std::shared_ptr<TcpConnection> _connection)
 {
-    auto &conn = TcpConnection::from(_connection);
-    auto &socket = conn.socket;
+    //auto& conn = TcpConnection::from(_connection);
+    auto& conn = *_connection;
+    auto& socket = conn.socket;
     if (_error)
     {
         SPDLOG_WARN("{} _error: {}", get_info(conn), _error.message());
         return;
     }
 
-    auto &buffer = conn.buffer;
-    auto &offset = conn.offset;
+    auto& buffer = conn.buffer;
+    auto& offset = conn.offset;
 
     SPDLOG_INFO("{} _bytes: {}", get_info(conn), _bytes);
     offset += _bytes;
 
     if (conn.read_done())
     {
-        SPDLOG_INFO("{} : {}", get_info(conn), buffer.data());
+        SPDLOG_INFO("{} : {}", get_info(conn),
+            reinterpret_cast<const char*>(buffer.data()));
     }
     else
     {
-        buffer.resize(offset + conn.per_read_size, '\0');
+        buffer.resize(offset + conn.per_read_size, 0xFF);
         socket.async_read_some(
             asio::buffer(buffer.data(), buffer.size()) += offset,
             callback(_connection, on_read));
@@ -31,12 +33,13 @@ void on_read(error_code_t _error, std::size_t _bytes,
 }
 
 void on_write(error_code_t _error, std::size_t _bytes,
-              std::shared_ptr<ConnectionBase> _connection)
+    std::shared_ptr<TcpConnection> _connection)
 {
-    auto &conn = TcpConnection::from(_connection);
-    auto &socket = conn.socket;
-    auto &buffer = conn.buffer;
-    auto &offset = conn.offset;
+    //auto& conn = TcpConnection::from(_connection);
+    auto& conn = *_connection;
+    auto& socket = conn.socket;
+    auto& buffer = conn.buffer;
+    auto& offset = conn.offset;
     if (_error)
     {
         SPDLOG_WARN("{} _error: {}", get_info(conn), _error.message());
@@ -52,7 +55,7 @@ void on_write(error_code_t _error, std::size_t _bytes,
         SPDLOG_INFO("{} write fininish!", get_info(conn));
 
         offset = 0;
-        buffer.resize(offset + conn.per_read_size, '\0');
+        buffer.resize(offset + conn.per_read_size, 0xFF);
         socket.async_read_some(
             asio::buffer(buffer.data(), buffer.size()) += offset,
             callback(_connection, on_read));
@@ -67,12 +70,13 @@ void on_write(error_code_t _error, std::size_t _bytes,
 
 void on_connect(
     error_code_t _error,
-    std::shared_ptr<ConnectionBase> _connection)
+    std::shared_ptr<TcpConnection> _connection)
 {
-    auto &conn = TcpConnection::from(_connection);
-    auto &socket = conn.socket;
-    auto &buffer = conn.buffer;
-    auto &offset = conn.offset;
+    //auto& conn = TcpConnection::from(_connection);
+    auto& conn = *_connection;
+    auto& socket = conn.socket;
+    auto& buffer = conn.buffer;
+    auto& offset = conn.offset;
 
     if (_error)
     {
@@ -81,27 +85,34 @@ void on_connect(
     }
 
     offset = 0;
-    buffer = to_buffer("client.");
+    buffer = to_buffer("client");
+    buffer.push_back('\0');
     socket.async_write_some(
         asio::buffer(buffer.data(), buffer.size()) += offset,
         callback(_connection, on_write));
 }
 
-int main()
+int main(int _argc, char* _argv[])
 {
     spdlog::set_pattern("[%C-%m-%d %T.%e] [%^%L%$] [%-10!!:%4#] %v");
 
+    namespace ip = asio::ip;
+
+    Argument argument;
+    argument.parse_client(_argc, _argv);
+
     asio::io_context io_context;
 
-    namespace ip = asio::ip;
-    auto address = ip::make_address("127.0.0.1");
-    auto endpoint = ip::tcp::endpoint(address, 8888);
+    auto endpoint = ip::tcp::endpoint(argument.address, argument.port);
 
-    std::vector<std::shared_ptr<TcpConnection>> conn_vec(2);
+    std::vector<std::shared_ptr<TcpConnection>> conn_vec(argument.connect_number);
 
-    for (auto &i : conn_vec)
+    int id = 0;
+    for (auto& i : conn_vec)
     {
         i = std::make_shared<TcpConnection>(io_context);
+        i->id = id;
+        id++;
         i->socket.async_connect(
             endpoint,
             [i](error_code_t _error)

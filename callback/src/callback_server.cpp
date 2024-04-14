@@ -1,25 +1,10 @@
-﻿// #include <spdlog/spdlog.h>
-// #include "connection.h"
-// #include <functional>
+﻿#include "callback.h"
 
-// using callback_t = void (*)(error_code_t _error, std::size_t _bytes, std::shared_ptr<ConnectionBase> _connection);
+void on_write(error_code_t _error, std::size_t _bytes, std::shared_ptr<TcpConnection> _connection);
 
-// auto callback =
-//     [](std::shared_ptr<ConnectionBase> _connection, callback_t _cb)
-// {
-//     return [_connection, _cb](error_code_t _error, std::size_t _bytes)
-//     {
-//         _cb(_error, _bytes, _connection);
-//     };
-// };
-
-#include "callback.h"
-
-void on_write(error_code_t _error, std::size_t _bytes, std::shared_ptr<ConnectionBase> _connection);
-
-void on_read(error_code_t _error, std::size_t _bytes, std::shared_ptr<ConnectionBase> _connection)
+void on_read(error_code_t _error, std::size_t _bytes, std::shared_ptr<TcpConnection> _connection)
 {
-    auto &conn = TcpConnection::from(_connection);
+    auto& conn = *_connection;
     auto &socket = conn.socket;
     if (_error)
     {
@@ -35,10 +20,10 @@ void on_read(error_code_t _error, std::size_t _bytes, std::shared_ptr<Connection
 
     if (conn.read_done())
     {
-        SPDLOG_INFO("{} : {}", get_info(conn), buffer.data());
+        SPDLOG_INFO("{} : {}", get_info(conn), reinterpret_cast<const char*>(buffer.data()));
 
+        buffer.resize(offset);
         offset = 0;
-        buffer = to_buffer("server.");
         socket.async_write_some(
             asio::buffer(buffer.data(), buffer.size()) += offset,
             callback(_connection, on_write));
@@ -52,9 +37,9 @@ void on_read(error_code_t _error, std::size_t _bytes, std::shared_ptr<Connection
     }
 }
 
-void on_write(error_code_t _error, std::size_t _bytes, std::shared_ptr<ConnectionBase> _connection)
+void on_write(error_code_t _error, std::size_t _bytes, std::shared_ptr<TcpConnection> _connection)
 {
-    auto &conn = TcpConnection::from(_connection);
+    auto& conn = *_connection;
     auto &socket = conn.socket;
     auto &buffer = conn.buffer;
     auto &offset = conn.offset;
@@ -73,7 +58,7 @@ void on_write(error_code_t _error, std::size_t _bytes, std::shared_ptr<Connectio
         SPDLOG_INFO("{} write fininish!", get_info(conn));
 
         offset = 0;
-        buffer.resize(offset + conn.per_read_size, '\0');
+        buffer.resize(offset + conn.per_read_size, 0xFF);
         socket.async_read_some(
             asio::buffer(buffer.data(), buffer.size()) += offset,
             callback(_connection, on_read));
@@ -89,9 +74,9 @@ void on_write(error_code_t _error, std::size_t _bytes, std::shared_ptr<Connectio
 void on_accept(
     error_code_t _error,
     acceptor_t &_acceptor,
-    std::shared_ptr<ConnectionBase> _connection)
+    std::shared_ptr<TcpConnection> _connection)
 {
-    auto &conn = TcpConnection::from(_connection);
+    auto& conn = *_connection;
     if (_error)
     {
         SPDLOG_WARN("{} _error: {}", get_info(conn), _error.message());
@@ -112,22 +97,25 @@ void on_accept(
     SPDLOG_INFO("{}", get_info(conn));
 
     offset = 0;
-    buffer.resize(offset + conn.per_read_size, '\0');
+    buffer.resize(offset + conn.per_read_size, 0xFF);
     socket.async_read_some(
         asio::buffer(buffer.data(), buffer.size()) += offset,
         callback(_connection, on_read));
 }
 
-int main()
+int main(int _argc, char* _argv[])
 {
     spdlog::set_pattern("[%C-%m-%d %T.%e] [%^%L%$] [%-10!!:%4#] %v");
 
     asio::io_context io_context;
     using asio::ip::tcp;
 
+    Argument argument;
+    argument.parse_server(_argc, _argv);
+
     acceptor_t acceptor(
         io_context,
-        tcp::endpoint(tcp::v4(), 8888));
+        tcp::endpoint(tcp::v4(), argument.port));
 
     {
         auto conn = std::make_shared<TcpConnection>(io_context);

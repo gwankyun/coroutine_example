@@ -1,6 +1,8 @@
 ﻿cmake_print_variables(CMAKE_SOURCE_DIR)
 cmake_print_variables(CMAKE_CURRENT_SOURCE_DIR)
 
+set(callback callback)
+
 set(callback_required callback_required)
 add_library(${callback_required} INTERFACE)
 target_sources(${callback_required}
@@ -21,33 +23,27 @@ target_compile_features(${callback_required} INTERFACE cxx_std_23)
 
 set(callback_server callback_server)
 add_executable(${callback_server})
-# target_sources(${callback_server}
-#   PRIVATE
-#     ${CMAKE_CURRENT_SOURCE_DIR}/src/server.cpp
-# )
-target_include_directories(${callback_server}
+target_sources(${callback_server}
   PRIVATE
-    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/callback_server.cpp
 )
 target_link_libraries(${callback_server}
   PRIVATE
     ${callback_required}
 )
+set_target_properties(${callback_server} PROPERTIES FOLDER ${callback})
 
 set(callback_client callback_client)
 add_executable(${callback_client})
 target_sources(${callback_client}
   PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/client.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/callback_client.cpp
 )
-# target_include_directories(${callback_client}
-#   PRIVATE
-#     ${CMAKE_SOURCE_DIR}/include
-# )
 target_link_libraries(${callback_client}
   PRIVATE
     ${callback_required}
 )
+set_target_properties(${callback_client} PROPERTIES FOLDER ${callback})
 
 # set(callback_required callback_required)
 # add_library(${callback_required} INTERFACE)

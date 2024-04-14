@@ -1,6 +1,8 @@
 ﻿cmake_print_variables(CMAKE_SOURCE_DIR)
 cmake_print_variables(CMAKE_CURRENT_SOURCE_DIR)
 
+set(coroutine2 coroutine2)
+
 set(coroutine2_required coroutine2_required)
 add_library(${coroutine2_required} INTERFACE)
 target_sources(${coroutine2_required}
@@ -18,13 +20,14 @@ target_link_libraries(${coroutine2_required} INTERFACE
 )
 target_compile_features(${coroutine2_required} INTERFACE cxx_std_23)
 
-set(coro2_server coro2_server)
-add_executable(${coro2_server})
-target_sources(${coro2_server}
+set(coroutine2_server coroutine2_server)
+add_executable(${coroutine2_server})
+target_sources(${coroutine2_server}
   PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/server.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/coroutine2_server.cpp
 )
-target_link_libraries(${coro2_server}
+target_link_libraries(${coroutine2_server}
   PRIVATE
     ${coroutine2_required}
 )
+set_target_properties(${coroutine2_server} PROPERTIES FOLDER ${coroutine2})
