@@ -3,7 +3,6 @@
 void on_read(error_code_t _error, std::size_t _bytes,
     std::shared_ptr<TcpConnection> _connection)
 {
-    //auto& conn = TcpConnection::from(_connection);
     auto& conn = *_connection;
     auto& socket = conn.socket;
     if (_error)
@@ -35,7 +34,6 @@ void on_read(error_code_t _error, std::size_t _bytes,
 void on_write(error_code_t _error, std::size_t _bytes,
     std::shared_ptr<TcpConnection> _connection)
 {
-    //auto& conn = TcpConnection::from(_connection);
     auto& conn = *_connection;
     auto& socket = conn.socket;
     auto& buffer = conn.buffer;
@@ -72,7 +70,6 @@ void on_connect(
     error_code_t _error,
     std::shared_ptr<TcpConnection> _connection)
 {
-    //auto& conn = TcpConnection::from(_connection);
     auto& conn = *_connection;
     auto& socket = conn.socket;
     auto& buffer = conn.buffer;
@@ -86,7 +83,6 @@ void on_connect(
 
     offset = 0;
     buffer = to_buffer("client");
-    buffer.push_back('\0');
     socket.async_write_some(
         asio::buffer(buffer.data(), buffer.size()) += offset,
         callback(_connection, on_write));
@@ -115,7 +111,7 @@ int main(int _argc, char* _argv[])
         id++;
         i->socket.async_connect(
             endpoint,
-            [i](error_code_t _error)
+            [=](error_code_t _error)
             {
                 on_connect(_error, i);
             });

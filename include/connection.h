@@ -11,22 +11,20 @@ namespace asio = boost::asio;
 using acceptor_t = asio::ip::tcp::acceptor;
 using socket_t = asio::ip::tcp::socket;
 
-struct ConnectionBase
-{
-    ConnectionBase() = default;
-    virtual ~ConnectionBase() = default;
-    using buffer_t = std::vector<unsigned char>;
-    buffer_t buffer;
-    std::size_t offset = 0;
-};
+using buffer_t = std::vector<unsigned char>;
 
 template <typename T>
-struct Connection : public ConnectionBase
+struct Connection
 {
     Connection(asio::io_context &_io_context) : socket(_io_context) {}
     Connection(const asio::any_io_executor &_io_context) : socket(_io_context) {}
-    ~Connection() override = default;
+    ~Connection() = default;
+
     T socket;
+
+    buffer_t buffer;
+    std::size_t offset = 0;
+
     int state = 0;
     int per_read_size = 4; // 每次讀多長
     int id = 0;
@@ -38,18 +36,6 @@ struct Connection : public ConnectionBase
             return false;
         }
         return buffer[offset - 1] == '\0';
-    }
-
-    /// @brief 基類轉引用
-    static Connection &from(std::shared_ptr<ConnectionBase> _base)
-    {
-        return *std::dynamic_pointer_cast<Connection>(_base);
-    }
-
-    /// @brief 基類轉引用
-    static Connection &from(std::unique_ptr<ConnectionBase> &_base)
-    {
-        return *dynamic_cast<Connection*>(_base.get());
     }
 };
 
@@ -63,10 +49,11 @@ inline std::string get_info(TcpConnection& _data)
     return std::format("({} : {} {})", ip, port, _data.id);
 }
 
-ConnectionBase::buffer_t to_buffer(std::string _str)
+inline buffer_t to_buffer(std::string _str)
 {
-    ConnectionBase::buffer_t buf;
+    buffer_t buf;
     std::copy_n(_str.c_str(), _str.size(), std::back_inserter(buf));
+    buf.push_back('\0');
     return buf;
 }
 
@@ -80,8 +67,9 @@ struct Argument
     {
         if (_argc >= 2)
         {
-            this->port = std::stoi(_argv[1]);
+            this->port = asio::ip::port_type(std::stoul(_argv[1]));
         }
+        SPDLOG_INFO("port: {}", port);
     }
 
     void parse_client(int _argc, char* _argv[])
@@ -96,7 +84,7 @@ struct Argument
         port = 8888;
         if (_argc >= 3)
         {
-            port = std::stoul(_argv[2]);
+            port = asio::ip::port_type(std::stoul(_argv[2]));
         }
         SPDLOG_INFO("port: {}", port);
 
