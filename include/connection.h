@@ -4,6 +4,7 @@
 #include <boost/asio.hpp>
 #include <cstddef>
 #include <format>
+#include <spdlog/spdlog.h>
 
 using error_code_t = boost::system::error_code;
 namespace asio = boost::asio;
@@ -13,36 +14,25 @@ using socket_t = asio::ip::tcp::socket;
 
 using buffer_t = std::vector<unsigned char>;
 
-template <typename T>
 struct Connection
 {
     Connection(asio::io_context &_io_context) : socket(_io_context) {}
     Connection(const asio::any_io_executor &_io_context) : socket(_io_context) {}
     ~Connection() = default;
 
-    T socket;
+    socket_t socket;
 
     buffer_t buffer;
-    std::size_t offset = 0;
+    std::size_t offset = 0u;
+
+    int id = 0;
 
     int state = 0;
-    int per_read_size = 4; // 每次讀多長
-    int id = 0;
-    /// @brief 判斷是否讀完
-    bool read_done()
-    {
-        if (offset <= 0)
-        {
-            return false;
-        }
-        return buffer[offset - 1] == '\0';
-    }
 };
 
-using TcpConnection = Connection<socket_t>;
-
-inline std::string get_info(TcpConnection& _data)
+inline std::string get_info(Connection& _data)
 {
+    std::string remote_endpoint_str{ "" };
     auto remote_endpoint = _data.socket.remote_endpoint();
     auto ip = remote_endpoint.address().to_string();
     auto port = remote_endpoint.port();

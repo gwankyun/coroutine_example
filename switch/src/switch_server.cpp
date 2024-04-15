@@ -16,13 +16,12 @@
 
 #define CORO_END() }
 
-void accept_socket(
-    error_code_t _error,
-    std::size_t _bytes,
+void handle_connection(
+    error_code_t _error, std::size_t _bytes,
     acceptor_t &_acceptor,
-    std::shared_ptr<TcpConnection> _connection)
+    std::shared_ptr<Connection> _connection)
 {
-    auto& conn = *_connection;
+    auto &conn = *_connection;
     auto &socket = conn.socket;
     auto &buffer = conn.buffer;
     auto &offset = conn.offset;
@@ -31,7 +30,7 @@ void accept_socket(
     auto cb =
         [&, _connection](error_code_t _error, std::size_t _bytes = 0U)
     {
-        accept_socket(_error, _bytes, _acceptor, _connection);
+        handle_connection(_error, _bytes, _acceptor, _connection);
     };
 
     CORO_BEGIN(state);
@@ -50,14 +49,14 @@ void accept_socket(
     // switch裡不能有局部變量，所以要作特殊處理。
     [&]
     {
-        auto newData = std::make_shared<TcpConnection>(_acceptor.get_executor());
-        accept_socket(error_code_t{}, 0U, _acceptor, newData);
+        auto new_conn = std::make_shared<Connection>(_acceptor.get_executor());
+        handle_connection(error_code_t{}, 0U, _acceptor, new_conn);
     }();
 
     offset = 0;
-    while (!conn.read_done())
+    while (offset == 0 || buffer[offset - 1] == '\0')
     {
-        buffer.resize(offset + conn.per_read_size, '\0');
+        buffer.resize(offset + 4, '\0');
         socket.async_read_some(asio::buffer(buffer) += offset, cb);
         CORO_YIELD(state);
 
@@ -75,8 +74,8 @@ void accept_socket(
     }
 
     SPDLOG_INFO("{} : {}",
-        get_info(conn),
-        reinterpret_cast<const char*>(buffer.data()));
+                get_info(conn),
+                reinterpret_cast<const char *>(buffer.data()));
 
     buffer.resize(offset);
     offset = 0;
@@ -102,7 +101,7 @@ void accept_socket(
     CORO_END();
 }
 
-int main(int _argc, char* _argv[])
+int main(int _argc, char *_argv[])
 {
     spdlog::set_pattern("[%C-%m-%d %T.%e] [%^%L%$] [%-10!!:%4#] %v");
 
@@ -120,8 +119,10 @@ int main(int _argc, char* _argv[])
         io_context,
         tcp::endpoint(tcp::v4(), argument.port));
 
-    auto data = std::make_shared<TcpConnection>(io_context);
-    accept_socket(error_code_t{}, 0U, acceptor, data);
+    {
+        auto conn = std::make_shared<Connection>(io_context);
+        handle_connection(error_code_t{}, 0U, acceptor, conn);
+    }
 
     io_context.run();
 
