@@ -56,15 +56,41 @@ void example2()
     }
 }
 
-template<typename T = void>
+template <typename T = void>
 using pull_type = typename coro2::coroutine<T>::pull_type;
 
-template<typename T = void>
+template <typename T = void>
 using push_type = typename coro2::coroutine<T>::push_type;
+
+void example4()
+{
+    using pull_t = pull_type<>;
+    using push_t = push_type<>;
+
+    pull_t pull(
+        [](push_t &_push)
+        {
+            _push();
+            std::vector<int> vec{1, 2, 3};
+            for (auto &i : vec)
+            {
+                SPDLOG_INFO(i);
+                _push();
+            }
+        });
+
+    std::vector<std::string> vec{"a", "b", "c"};
+    for (auto &i : vec)
+    {
+        SPDLOG_INFO(i);
+        pull();
+    }
+}
 
 void example3()
 {
-    pull_type<> pull([](push_type<>& _push)
+    pull_type<> pull(
+        [](push_type<> &_push)
         {
             _push();
             SPDLOG_INFO("1");
@@ -73,25 +99,26 @@ void example3()
             _push();
             SPDLOG_INFO("3");
 
-            //std::vector<std::unique_ptr<pull_type<>>> child(2);
+            // std::vector<std::unique_ptr<pull_type<>>> child(2);
             std::map<int, std::unique_ptr<pull_type<>>> child;
 
             for (auto i = 0u; i < 3; i++)
             {
-                child[i] = std::make_unique<pull_type<>>(([i](push_type<>& _push_child)
+                child[i] = std::make_unique<pull_type<>>(
+                    [i](push_type<> &_push_child)
                     {
                         _push_child();
-                        SPDLOG_INFO("id: {} read", i); // 異步讀
-                        _push_child(); // 返回主協程
+                        SPDLOG_INFO("id: {} read", i);  // 異步讀
+                        _push_child();                  // 返回主協程
                         SPDLOG_INFO("id: {} write", i); // 異步寫
-                    }));
+                    });
             }
 
             while (!child.empty())
             {
                 for (auto it = child.begin(); it != child.end();)
                 {
-                    auto& c = *(it->second);
+                    auto &c = *(it->second);
                     if (c) // 判斷幾時喚醒子協程
                     {
                         SPDLOG_INFO("");
@@ -105,49 +132,49 @@ void example3()
                 }
             }
 
-            //int id = 0;
+            // int id = 0;
             ////for (auto& i : child)
-            //for (auto it = child.m)
+            // for (auto it = child.m)
             //{
-            //    i = std::make_unique<pull_type<>>(([id](push_type<>& _push_child)
-            //        {
-            //            _push_child();
-            //            SPDLOG_INFO("{} 1", id);
-            //            _push_child();
-            //            SPDLOG_INFO("{} 2", id);
-            //        }));
-            //    id++;
-            //}
+            //     i = std::make_unique<pull_type<>>(([id](push_type<>& _push_child)
+            //         {
+            //             _push_child();
+            //             SPDLOG_INFO("{} 1", id);
+            //             _push_child();
+            //             SPDLOG_INFO("{} 2", id);
+            //         }));
+            //     id++;
+            // }
 
-            //bool flag = true;
-            //while (flag)
+            // bool flag = true;
+            // while (flag)
             //{
-            //    for (auto& i : child)
-            //    {
-            //        flag = false;
-            //        SPDLOG_INFO("");
-            //        if (*i)
-            //        {
-            //            SPDLOG_INFO("");
-            //            (*i)();
-            //            flag = true;
-            //        }
-            //    }
-            //}
+            //     for (auto& i : child)
+            //     {
+            //         flag = false;
+            //         SPDLOG_INFO("");
+            //         if (*i)
+            //         {
+            //             SPDLOG_INFO("");
+            //             (*i)();
+            //             flag = true;
+            //         }
+            //     }
+            // }
 
-            //pull_type<> pull_child([](push_type<>& _push_child)
-            //    {
-            //        _push_child();
-            //        SPDLOG_INFO(" 1");
-            //        _push_child();
-            //        SPDLOG_INFO(" 2");
-            //    });
+            // pull_type<> pull_child([](push_type<>& _push_child)
+            //     {
+            //         _push_child();
+            //         SPDLOG_INFO(" 1");
+            //         _push_child();
+            //         SPDLOG_INFO(" 2");
+            //     });
 
-            //while (pull_child)
+            // while (pull_child)
             //{
-            //    SPDLOG_INFO("");
-            //    pull_child();
-            //}
+            //     SPDLOG_INFO("");
+            //     pull_child();
+            // }
         });
 
     SPDLOG_INFO("a");
@@ -164,7 +191,8 @@ int main()
 
     // example1();
 
-    example3();
+    // example3();
+    example4();
 
     return 0;
 }

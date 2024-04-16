@@ -24,10 +24,21 @@ set(coroutine2_server coroutine2_server)
 add_executable(${coroutine2_server})
 target_sources(${coroutine2_server}
   PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/coroutine2_server.cpp
+    src/coroutine2_server.cpp
 )
 target_link_libraries(${coroutine2_server}
   PRIVATE
     ${coroutine2_required}
 )
 set_target_properties(${coroutine2_server} PROPERTIES FOLDER ${coroutine2})
+
+set(boost_coro2 boost_coro2)
+add_executable(${boost_coro2})
+target_sources(${boost_coro2} PRIVATE
+  src/coro2.cpp
+)
+target_link_libraries(${boost_coro2}
+  PRIVATE
+    ${coroutine2_required}
+)
+set_target_properties(${boost_coro2} PROPERTIES FOLDER ${coroutine2})

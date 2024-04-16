@@ -110,6 +110,7 @@ target_link_libraries(${server} PRIVATE ${asio_required})
 add_subdirectory(callback)
 add_subdirectory(switch)
 add_subdirectory(coroutine2)
+add_subdirectory(context)
 
 # 客戶端
 set(client client)
@@ -138,12 +139,12 @@ target_sources(${coro_std} PRIVATE
 )
 target_link_libraries(${coro_std} PRIVATE ${common_required})
 
-set(boost_coro2 boost_coro2)
-add_executable(${boost_coro2})
-target_sources(${boost_coro2} PRIVATE
-  src/coro2.ixx src/coro2.cpp
-)
-target_link_libraries(${boost_coro2} PRIVATE
-  ${common_required}
-  ${coro2_required}
-)
+# set(boost_coro2 boost_coro2)
+# add_executable(${boost_coro2})
+# target_sources(${boost_coro2} PRIVATE
+#   src/coro2.ixx src/coro2.cpp
+# )
+# target_link_libraries(${boost_coro2} PRIVATE
+#   ${common_required}
+#   ${coro2_required}
+# )
