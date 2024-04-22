@@ -53,6 +53,8 @@ endif()
 
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:${msvc_options}>")
 
+set(Boost_NO_WARN_NEW_VERSIONS ON)
+set(BOOST_ROOT "$ENV{ProgramFiles}/boost_1_85_0")
 find_package(Boost REQUIRED COMPONENTS context) # 必需
 check_package(Boost)
 
