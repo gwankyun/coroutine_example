@@ -1,8 +1,8 @@
-﻿#include <vector>
-#include <string>
+﻿#include <map>
 #include <memory>
-#include <map>
 #include <spdlog/spdlog.h>
+#include <string>
+#include <vector>
 #define BOOST_ALL_NO_LIB 1
 #include <boost/context/continuation.hpp>
 
@@ -12,11 +12,11 @@ using continuation_t = context::continuation;
 void example()
 {
     continuation_t source = context::callcc(
-        [](continuation_t &&_sink)
+        [](continuation_t&& _sink)
         {
             _sink = _sink.resume();
             std::vector<int> vec{1, 2, 3};
-            for (auto &i : vec)
+            for (auto& i : vec)
             {
                 SPDLOG_INFO(i);
                 _sink = _sink.resume();
@@ -25,7 +25,7 @@ void example()
         });
 
     std::vector<std::string> vec{"a", "b", "c"};
-    for (auto &i : vec)
+    for (auto& i : vec)
     {
         SPDLOG_INFO(i);
         source = source.resume();
@@ -38,48 +38,47 @@ void example2()
 
     for (auto i = 0u; i < 3; i++)
     {
-        children[i] = std::make_unique<continuation_t>(
-            context::callcc(
-                [i, &children](continuation_t &&_sink)
+        children[i] = std::make_unique<continuation_t>(context::callcc(
+            [i, &children](continuation_t&& _sink)
+            {
+                _sink = _sink.resume();
+
+                // SPDLOG_INFO("id: {} read", i); // 異步讀
+                // if (i < 2)
+                // {
+                //     *(children[i + 1]) = (children[i + 1])->resume();
+                // }
+                // else if (i == 2)
+                // {
+                //     *(children[0]) = (children[0])->resume();
+                // }
+                // SPDLOG_INFO("id: {} write", i); // 異步寫
+
+                std::vector<int> vec{1, 2, 3};
+                for (auto& v : vec)
                 {
-                    _sink = _sink.resume();
-
-                    // SPDLOG_INFO("id: {} read", i); // 異步讀
-                    // if (i < 2)
-                    // {
-                    //     *(children[i + 1]) = (children[i + 1])->resume();
-                    // }
-                    // else if (i == 2)
-                    // {
-                    //     *(children[0]) = (children[0])->resume();
-                    // }
-                    // SPDLOG_INFO("id: {} write", i); // 異步寫
-
-                    std::vector<int> vec{1, 2, 3};
-                    for (auto &v : vec)
+                    SPDLOG_INFO("id: {} {}", i, v);
+                    // _sink = _sink.resume();
+                    if (i < 2)
                     {
-                        SPDLOG_INFO("id: {} {}", i, v);
-                        // _sink = _sink.resume();
-                        if (i < 2)
+                        if (*(children[i + 1]))
                         {
-                            if (*(children[i + 1]))
-                            {
-                                *(children[i + 1]) = (children[i + 1])->resume();
-                            }
-                        }
-                        else
-                        {
-                            // *(children[0]) = (children[0])->resume();
-                            // _sink = _sink.resume();
-                            if (*(children[0]))
-                            {
-                                *(children[0]) = (children[0])->resume();
-                            }
+                            *(children[i + 1]) = (children[i + 1])->resume();
                         }
                     }
+                    else
+                    {
+                        // *(children[0]) = (children[0])->resume();
+                        // _sink = _sink.resume();
+                        if (*(children[0]))
+                        {
+                            *(children[0]) = (children[0])->resume();
+                        }
+                    }
+                }
 
-                    return std::move(_sink);
-                }));
+                return std::move(_sink);
+            }));
     }
 
     *(children[0]) = (children[0])->resume();

@@ -1,12 +1,12 @@
 ﻿// module;
-#include <vector>
-#include <string>
-#include <memory>
-#include <map>
 #include <deque>
 #include <list>
-#include <unordered_map>
+#include <map>
+#include <memory>
 #include <spdlog/spdlog.h>
+#include <string>
+#include <unordered_map>
+#include <vector>
 #define BOOST_ALL_NO_LIB 1
 #include <boost/coroutine2/all.hpp>
 // module coro2;
@@ -14,7 +14,7 @@
 
 namespace coro2 = boost::coroutines2;
 
-void func(coro2::coroutine<void>::push_type &_yield)
+void func(coro2::coroutine<void>::push_type& _yield)
 {
     std::vector<int> vec{1, 2, 3};
     SPDLOG_INFO("{}", vec[0]);
@@ -24,7 +24,7 @@ void func(coro2::coroutine<void>::push_type &_yield)
     SPDLOG_INFO("{}", vec[2]);
 }
 
-void func2(coro2::coroutine<std::string>::push_type &_yield)
+void func2(coro2::coroutine<std::string>::push_type& _yield)
 {
     SPDLOG_INFO("");
     _yield("1");
@@ -71,12 +71,12 @@ void single_coroutine()
     using push_t = push_type<>;
 
     pull_t pull(
-        [](push_t &_push)
+        [](push_t& _push)
         {
             SPDLOG_INFO("#1");
             _push();
             std::vector<int> vec{1, 2, 3};
-            for (auto &i : vec)
+            for (auto& i : vec)
             {
                 SPDLOG_INFO(i);
                 _push();
@@ -86,7 +86,7 @@ void single_coroutine()
     SPDLOG_INFO("#2");
 
     std::vector<std::string> vec{"a", "b", "c"};
-    for (auto &i : vec)
+    for (auto& i : vec)
     {
         SPDLOG_INFO(i);
         pull();
@@ -103,31 +103,32 @@ void multiple_coroutine()
 
     for (auto i = 0u; i < 3; i++)
     {
-        auto pull =
-            std::make_unique<pull_t>([i, &awake_container](push_t &_push) {
-                    auto id = i;
-                    // _push();
+        auto pull = std::make_unique<pull_t>(
+            [i, &awake_container](push_t& _push)
+            {
+                auto id = i;
+                // _push();
 
-                    if (id == 0)
+                if (id == 0)
+                {
+                    while (true)
                     {
-                        while (true)
-                        {
-                            awake_container.push_back(id);
-                            _push(true);
-                        }
+                        awake_container.push_back(id);
+                        _push(true);
                     }
-                    else
+                }
+                else
+                {
+                    std::vector<int> vec{1, 2, 3};
+                    for (auto& j : vec)
                     {
-                        std::vector<int> vec{1, 2, 3};
-                        for (auto &j : vec)
-                        {
-                            SPDLOG_INFO("id: {} {}", id, j);
-                            awake_container.push_back(id);
-                            _push(true);
-                        }
-                        _push(false);
+                        SPDLOG_INFO("id: {} {}", id, j);
+                        awake_container.push_back(id);
+                        _push(true);
                     }
-                });
+                    _push(false);
+                }
+            });
         pull_container[i] = std::move(pull);
     }
 
@@ -161,7 +162,7 @@ void multiple_coroutine()
 void example3()
 {
     pull_type<> pull(
-        [](push_type<> &_push)
+        [](push_type<>& _push)
         {
             _push();
             SPDLOG_INFO("1");
@@ -176,7 +177,7 @@ void example3()
             for (auto i = 0u; i < 3; i++)
             {
                 child[i] = std::make_unique<pull_type<>>(
-                    [i](push_type<> &_push_child)
+                    [i](push_type<>& _push_child)
                     {
                         _push_child();
                         SPDLOG_INFO("id: {} read", i);  // 異步讀
@@ -189,7 +190,7 @@ void example3()
             {
                 for (auto it = child.begin(); it != child.end();)
                 {
-                    auto &c = *(it->second);
+                    auto& c = *(it->second);
                     if (c) // 判斷幾時喚醒子協程
                     {
                         SPDLOG_INFO("");

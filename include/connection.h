@@ -1,10 +1,10 @@
 ﻿#pragma once
-#include <vector>
-#include <boost/system.hpp> // boost::system::error_code
 #include <boost/asio.hpp>
+#include <boost/system.hpp> // boost::system::error_code
 #include <cstddef>
 #include <format>
 #include <spdlog/spdlog.h>
+#include <vector>
 
 using error_code_t = boost::system::error_code;
 namespace asio = boost::asio;
@@ -16,8 +16,12 @@ using buffer_t = std::vector<unsigned char>;
 
 struct Connection
 {
-    Connection(asio::io_context &_io_context) : socket(_io_context) {}
-    Connection(const asio::any_io_executor &_io_context) : socket(_io_context) {}
+    Connection(asio::io_context& _io_context) : socket(_io_context)
+    {
+    }
+    Connection(const asio::any_io_executor& _io_context) : socket(_io_context)
+    {
+    }
     ~Connection() = default;
 
     socket_t socket;
@@ -32,7 +36,7 @@ struct Connection
 
 inline std::string get_info(Connection& _data)
 {
-    std::string remote_endpoint_str{ "" };
+    std::string remote_endpoint_str{""};
     auto remote_endpoint = _data.socket.remote_endpoint();
     auto ip = remote_endpoint.address().to_string();
     auto port = remote_endpoint.port();
@@ -86,4 +90,3 @@ struct Argument
         SPDLOG_INFO("conn_count: {}", connect_number);
     }
 };
-

@@ -1,21 +1,21 @@
-﻿#include "log.hpp"
+﻿#include "connection.h"
+#include "log.hpp"
 #include <spdlog/fmt/bin_to_hex.h>
-#include "connection.h"
 #define BOOST_ALL_NO_LIB 1
 #include <boost/coroutine2/all.hpp>
+#include <deque>
 #include <format>
-#include <map>
-#include <set>
+#include <unordered_map>
 
 namespace coro2 = boost::coroutines2;
 
-template<typename T = void>
+template <typename T = void>
 using pull_type = typename coro2::coroutine<T>::pull_type;
 
-template<typename T = void>
+template <typename T = void>
 using push_type = typename coro2::coroutine<T>::push_type;
 
-inline std::string get_info(const socket_t& socket)
+std::string get_info(const socket_t& socket)
 {
     auto remote_endpoint = socket.remote_endpoint();
     auto ip = remote_endpoint.address().to_string();
@@ -27,27 +27,31 @@ void coro_example(asio::io_context& _io_context, acceptor_t& _acceptor)
 {
     using pull_t = pull_type<bool>;
     using push_t = push_type<bool>;
-    std::map<int, std::unique_ptr<pull_t>> child;
+
+    // 協程容器
+    std::unordered_map<int, std::unique_ptr<pull_t>> coro_cont;
+
+    // 自增協程標識
     int id = 0;
 
-    // 記錄哪些協程需要被喚醒。
-    std::set<int> awake_set;
+    // 待喚醒協程隊列。
+    std::deque<int> awake_cont;
 
-    // 通用的回調，衹標記哪些協程需要被喚醒。
-    auto callback = [&awake_set](int _id, error_code_t& _error, std::size_t& _bytes)
+    // 通用回調，標記哪些協程需要被喚醒。
+    auto callback = [&awake_cont](int _id, error_code_t& _error, std::size_t& _bytes)
+    {
+        return [&awake_cont, _id, &_error, &_bytes](error_code_t _e, std::size_t _b = 0u)
         {
-            return [&awake_set, _id, &_error, &_bytes](error_code_t _e, std::size_t _b = 0u)
-                {
-                    _error = _e;
-                    _bytes = _b;
-                    awake_set.insert(_id);
-                };
+            _error = _e;
+            _bytes = _b;
+            awake_cont.push_back(_id);
         };
+    };
 
     // 每個連接一個新的函數，協程間不能共用函數，會有棧衝突
-    auto connection_coro = [callback](int newID, socket_t &&socket)
+    auto connection_coro = [callback](int newID, socket_t&& socket)
     {
-        return [newID, socket = std::move(socket), callback](push_t &_yield) mutable
+        return [newID, socket = std::move(socket), callback](push_t& _yield) mutable
         {
             int current = newID;
             std::vector<unsigned char> buffer;
@@ -76,10 +80,7 @@ void coro_example(asio::io_context& _io_context, acceptor_t& _acceptor)
                 }
             }
 
-            SPDLOG_INFO("{} id: {} {}",
-                        get_info(socket),
-                        current,
-                        reinterpret_cast<const char *>(buffer.data()));
+            SPDLOG_INFO("{} id: {} {}", get_info(socket), current, reinterpret_cast<const char*>(buffer.data()));
 
             buffer.resize(offset);
             offset = 0;
@@ -107,10 +108,11 @@ void coro_example(asio::io_context& _io_context, acceptor_t& _acceptor)
         };
     };
 
-    child[id] = std::make_unique<pull_t>(
-        [&id, callback, &_acceptor, &child, connection_coro](push_t& _yield)
+    coro_cont[id] = std::make_unique<pull_t>(
+        [&id, callback, &_acceptor, &coro_cont, connection_coro](push_t& _yield)
         {
             int current = id;
+            int newID = current;
             while (true)
             {
                 error_code_t error;
@@ -127,35 +129,32 @@ void coro_example(asio::io_context& _io_context, acceptor_t& _acceptor)
 
                 SPDLOG_INFO("{} new", get_info(socket));
 
-                id++;
-                auto newID = id;
-                child[newID] = std::make_unique<pull_t>(
-                    connection_coro(newID, std::move(socket)));
+                newID++;
+                coro_cont[newID] = std::make_unique<pull_t>(connection_coro(newID, std::move(socket)));
             }
         });
 
-    // 簡單的協程調度，喚醒容器（awake_set）裡存在就喚醒。
-    while (!child.empty())
+    while (!coro_cont.empty())
     {
-        std::vector<int> key_vec;
-        for (auto& i : child)
+        // 簡單的協程調度，按awake_cont中先進先出的順序喚醒協程。
+        while (!awake_cont.empty())
         {
-            key_vec.push_back(i.first);
-        }
-
-        for (auto& i : key_vec)
-        {
-            if (awake_set.count(i) > 0)
+            auto i = awake_cont.front();
+            SPDLOG_INFO("id: {}", i);
+            auto iter = coro_cont.find(i);
+            if (iter != coro_cont.end())
             {
-                auto& resume = *(child[i]);
+                auto& resume = *(iter->second);
                 if (!resume || !resume().get())
                 {
-                    child.erase(i);
-                    SPDLOG_INFO("child size: {}", child.size());
+                    coro_cont.erase(iter);
+                    SPDLOG_INFO("child size: {}", coro_cont.size());
                 }
-                awake_set.erase(i);
             }
+            awake_cont.pop_front();
         }
+
+        // 實際執行異步操作
         _io_context.run();
     }
 }
@@ -170,9 +169,7 @@ int main(int _argc, char* _argv[])
     asio::io_context io_context;
     using asio::ip::tcp;
 
-    acceptor_t acceptor(
-        io_context,
-        tcp::endpoint(tcp::v4(), argument.port));
+    acceptor_t acceptor(io_context, tcp::endpoint(tcp::v4(), argument.port));
 
     coro_example(io_context, acceptor);
 
