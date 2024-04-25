@@ -3,13 +3,14 @@
 #include <spdlog/spdlog.h>
 #include <string>
 #include <vector>
+#include <queue>
 #define BOOST_ALL_NO_LIB 1
 #include <boost/context/continuation.hpp>
 
 namespace context = boost::context;
 using continuation_t = context::continuation;
 
-void example()
+void single_continuation()
 {
     continuation_t source = context::callcc(
         [](continuation_t&& _sink)
@@ -32,69 +33,55 @@ void example()
     }
 }
 
-void example2()
+void multiple_continuation()
 {
-    std::map<int, std::unique_ptr<continuation_t>> children;
+    std::unordered_map<int, std::unique_ptr<continuation_t>> continuation_cont;
+    std::queue<int> awake_cont;
 
     for (auto i = 0u; i < 3; i++)
     {
-        children[i] = std::make_unique<continuation_t>(context::callcc(
-            [i, &children](continuation_t&& _sink)
+        auto continuation = std::make_unique<continuation_t>(context::callcc(
+            [i, &awake_cont](continuation_t&& _continuation)
             {
-                _sink = _sink.resume();
-
-                // SPDLOG_INFO("id: {} read", i); // 異步讀
-                // if (i < 2)
-                // {
-                //     *(children[i + 1]) = (children[i + 1])->resume();
-                // }
-                // else if (i == 2)
-                // {
-                //     *(children[0]) = (children[0])->resume();
-                // }
-                // SPDLOG_INFO("id: {} write", i); // 異步寫
-
+                auto id = i;
                 std::vector<int> vec{1, 2, 3};
-                for (auto& v : vec)
+                for (auto& j : vec)
                 {
-                    SPDLOG_INFO("id: {} {}", i, v);
-                    // _sink = _sink.resume();
-                    if (i < 2)
-                    {
-                        if (*(children[i + 1]))
-                        {
-                            *(children[i + 1]) = (children[i + 1])->resume();
-                        }
-                    }
-                    else
-                    {
-                        // *(children[0]) = (children[0])->resume();
-                        // _sink = _sink.resume();
-                        if (*(children[0]))
-                        {
-                            *(children[0]) = (children[0])->resume();
-                        }
-                    }
+                    SPDLOG_INFO("id: {} {}", id, j);
+                    awake_cont.push(id);
+                    _continuation = _continuation.resume();
                 }
-
-                return std::move(_sink);
+                return std::move(_continuation);
             }));
+        continuation_cont[i] = std::move(continuation);
     }
 
-    *(children[0]) = (children[0])->resume();
+    while (!awake_cont.empty())
+    {
+        auto i = awake_cont.front();
+        SPDLOG_INFO("awake id: {}", i);
+        auto iter = continuation_cont.find(i);
+        if (iter != continuation_cont.end())
+        {
+            auto& continuation = *(iter->second);
+
+            continuation = continuation.resume();
+            if (!continuation)
+            {
+                continuation_cont.erase(iter);
+                SPDLOG_INFO("child size: {}", continuation_cont.size());
+            }
+        }
+        awake_cont.pop();
+    }
 }
 
 int main()
 {
-    spdlog::set_pattern("[%C-%m-%d %T.%e] [%^%L%$] [%-50!!:%4#] %v");
+    spdlog::set_pattern("[%C-%m-%d %T.%e] [%^%L%$] [%-15!!:%4#] %v");
 
-    // example1();
-
-    // example3();
-    // example4();
-
-    // example();
-    example2();
+    // single_continuation();
+    multiple_continuation();
 
     return 0;
 }

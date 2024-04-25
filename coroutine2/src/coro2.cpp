@@ -7,6 +7,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <queue>
 #define BOOST_ALL_NO_LIB 1
 #include <boost/coroutine2/all.hpp>
 // module coro2;
@@ -95,68 +96,46 @@ void single_coroutine()
 
 void multiple_coroutine()
 {
-    using pull_t = pull_type<bool>;
-    using push_t = push_type<bool>;
+    using pull_t = pull_type<>;
+    using push_t = push_type<>;
 
-    std::unordered_map<int, std::unique_ptr<pull_t>> pull_container;
-    std::deque<int> awake_container;
+    std::unordered_map<int, std::unique_ptr<pull_t>> coro_cont;
+    std::queue<int> awake_cont;
 
     for (auto i = 0u; i < 3; i++)
     {
         auto pull = std::make_unique<pull_t>(
-            [i, &awake_container](push_t& _push)
+            [i, &awake_cont](push_t& _push)
             {
                 auto id = i;
-                // _push();
-
-                if (id == 0)
+                std::vector<int> vec{1, 2, 3};
+                for (auto& j : vec)
                 {
-                    while (true)
-                    {
-                        awake_container.push_back(id);
-                        _push(true);
-                    }
+                    SPDLOG_INFO("id: {} {}", id, j);
+                    awake_cont.push(id);
+                    _push();
                 }
-                else
-                {
-                    std::vector<int> vec{1, 2, 3};
-                    for (auto& j : vec)
-                    {
-                        SPDLOG_INFO("id: {} {}", id, j);
-                        awake_container.push_back(id);
-                        _push(true);
-                    }
-                    _push(false);
-                }
+                _push();
             });
-        pull_container[i] = std::move(pull);
+        coro_cont[i] = std::move(pull);
     }
 
-    SPDLOG_INFO("awake_container: {}", awake_container.size());
-    // return;
-
-    // while
-
-    // while (!pull_container.empty())
-    // {
-    //     if (!awake_container.empty())
-    //     {
-    //         SPDLOG_INFO("awake_container: {}", awake_container.size());
-    //         auto id = awake_container.front();
-    //         auto iter = pull_container.find(id);
-    //         if (iter != pull_container.end())
-    //         {
-    //             auto &pull = *(iter->second);
-    //             auto result = pull.get();
-    //             if (!result)
-    //             {
-    //                 pull_container.erase(iter);
-    //             }
-    //         }
-    //         awake_container.pop_front();
-    //     }
-    //     SPDLOG_INFO("awake_container: {}", awake_container.size());
-    // }
+    while (!awake_cont.empty())
+    {
+        auto i = awake_cont.front();
+        SPDLOG_INFO("awake id: {}", i);
+        auto iter = coro_cont.find(i);
+        if (iter != coro_cont.end())
+        {
+            auto& resume = *(iter->second);
+            if (!resume || !resume())
+            {
+                coro_cont.erase(iter);
+                SPDLOG_INFO("child size: {}", coro_cont.size());
+            }
+        }
+        awake_cont.pop();
+    }
 }
 
 void example3()
@@ -259,7 +238,7 @@ void example3()
 
 int main()
 {
-    spdlog::set_pattern("[%C-%m-%d %T.%e] [%^%L%$] [%-50!!:%4#] %v");
+    spdlog::set_pattern("[%C-%m-%d %T.%e] [%^%L%$] [%-15!!:%4#] %v");
 
     // example1();
 

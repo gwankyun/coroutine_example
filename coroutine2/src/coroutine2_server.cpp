@@ -3,8 +3,8 @@
 #include <spdlog/fmt/bin_to_hex.h>
 #define BOOST_ALL_NO_LIB 1
 #include <boost/coroutine2/all.hpp>
-#include <deque>
 #include <format>
+#include <queue>
 #include <unordered_map>
 
 namespace coro2 = boost::coroutines2;
@@ -31,11 +31,8 @@ void coro_example(asio::io_context& _io_context, acceptor_t& _acceptor)
     // 協程容器
     std::unordered_map<int, std::unique_ptr<pull_t>> coro_cont;
 
-    // 自增協程標識
-    int id = 0;
-
     // 待喚醒協程隊列。
-    std::deque<int> awake_cont;
+    std::queue<int> awake_cont;
 
     // 通用回調，標記哪些協程需要被喚醒。
     auto callback = [&awake_cont](int _id, error_code_t& _error, std::size_t& _bytes)
@@ -44,7 +41,7 @@ void coro_example(asio::io_context& _io_context, acceptor_t& _acceptor)
         {
             _error = _e;
             _bytes = _b;
-            awake_cont.push_back(_id);
+            awake_cont.push(_id);
         };
     };
 
@@ -108,11 +105,14 @@ void coro_example(asio::io_context& _io_context, acceptor_t& _acceptor)
         };
     };
 
-    coro_cont[id] = std::make_unique<pull_t>(
-        [&id, callback, &_acceptor, &coro_cont, connection_coro](push_t& _yield)
+    // 監聽協程
+    auto listen_id = 0;
+    coro_cont[listen_id] = std::make_unique<pull_t>(
+        [&listen_id, &callback, &_acceptor, &coro_cont, &connection_coro](push_t& _yield)
         {
-            int current = id;
-            int newID = current;
+            int current = listen_id;
+            // 自增協程標識
+            int connection_id = current + 1;
             while (true)
             {
                 error_code_t error;
@@ -129,18 +129,19 @@ void coro_example(asio::io_context& _io_context, acceptor_t& _acceptor)
 
                 SPDLOG_INFO("{} new", get_info(socket));
 
-                newID++;
-                coro_cont[newID] = std::make_unique<pull_t>(connection_coro(newID, std::move(socket)));
+                coro_cont[connection_id] = std::make_unique<pull_t>(connection_coro(connection_id, std::move(socket)));
+                connection_id++;
             }
         });
 
+    // 監聽協程永遠不會中止，所以會一直執行
     while (!coro_cont.empty())
     {
         // 簡單的協程調度，按awake_cont中先進先出的順序喚醒協程。
         while (!awake_cont.empty())
         {
             auto i = awake_cont.front();
-            SPDLOG_INFO("id: {}", i);
+            SPDLOG_INFO("awake id: {}", i);
             auto iter = coro_cont.find(i);
             if (iter != coro_cont.end())
             {
@@ -151,7 +152,7 @@ void coro_example(asio::io_context& _io_context, acceptor_t& _acceptor)
                     SPDLOG_INFO("child size: {}", coro_cont.size());
                 }
             }
-            awake_cont.pop_front();
+            awake_cont.pop();
         }
 
         // 實際執行異步操作
