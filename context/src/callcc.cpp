@@ -1,9 +1,11 @@
 ﻿#include <map>
 #include <memory>
 #include <spdlog/spdlog.h>
+#include <spdlog/mdc.h>
 #include <string>
 #include <vector>
 #include <queue>
+#include <cassert>
 #define BOOST_ALL_NO_LIB 1
 #include <boost/context/continuation.hpp>
 
@@ -31,6 +33,72 @@ void single_continuation()
         SPDLOG_INFO(i);
         source = source.resume();
     }
+}
+
+void sub_to_sub()
+{
+    std::unique_ptr<continuation_t> sub_num;
+    std::unique_ptr<continuation_t> sub_char;
+    std::unique_ptr<continuation_t> sub_operator;
+
+    SPDLOG_INFO("before creating sub_num");
+    sub_num = std::make_unique<continuation_t>(context::callcc(
+        [&sub_operator](continuation_t&& _sink)
+        {
+            spdlog::mdc::put("id", "sub_num");
+            SPDLOG_INFO("creating sub_num");
+            auto& main = _sink;
+            main = main.resume(); // 跳主協程
+            std::vector<int> vec{1, 2, 3, 4};
+            for (auto& i : vec)
+            {
+                SPDLOG_INFO(i);
+                *sub_operator = sub_operator->resume(); // 跳sub_operator，和sub_operator建立了一個通道
+                auto& sub_char = _sink; // _sink就是sub_char
+                sub_char = sub_char.resume(); // 跳sub_char
+            }
+            return std::move(_sink);
+        }));
+    SPDLOG_INFO("after creating sub_num");
+
+    SPDLOG_INFO("before creating sub_char");
+    sub_char = std::make_unique<continuation_t>(context::callcc(
+        [&sub_num](continuation_t&& _sink)
+        {
+            spdlog::mdc::put("id", "sub_char");
+            SPDLOG_INFO("creating sub_char");
+            auto& main = _sink;
+            main = main.resume(); // 跳主協程
+            std::vector<std::string> vec{"a", "b", "c", "d"};
+            for (auto& i : vec)
+            {
+                SPDLOG_INFO(i);
+                *sub_num = sub_num->resume(); // 跳sub_num，此時可以認為和sub_num建立了一個通道
+            }
+            return std::move(_sink);
+        }));
+    SPDLOG_INFO("after creating sub_char");
+
+    SPDLOG_INFO("before creating sub_operator");
+    sub_operator = std::make_unique<continuation_t>(context::callcc(
+        [](continuation_t&& _sink)
+        {
+            spdlog::mdc::put("id", "sub_operator");
+            SPDLOG_INFO("creating sub_operator");
+            auto& main = _sink;
+            main = main.resume(); // 跳主協程
+            std::vector<std::string> vec{"+", "-", "*", "/"};
+            for (auto& i : vec)
+            {
+                SPDLOG_INFO(i);
+                auto& sub_num = _sink;
+                sub_num = sub_num.resume();
+            }
+            return std::move(_sink);
+        }));
+    SPDLOG_INFO("after creating sub_operator");
+
+    *sub_char = sub_char->resume();
 }
 
 void multiple_continuation()
@@ -81,7 +149,10 @@ int main()
     spdlog::set_pattern("[%C-%m-%d %T.%e] [%^%L%$] [%-15!!:%4#] %v");
 
     // single_continuation();
-    multiple_continuation();
+
+    sub_to_sub();
+
+    // multiple_continuation();
 
     return 0;
 }
