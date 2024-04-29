@@ -10,6 +10,7 @@
 #include <queue>
 #define BOOST_ALL_NO_LIB 1
 #include <boost/coroutine2/all.hpp>
+#include <functional>
 // module coro2;
 // import std.core;
 
@@ -92,7 +93,26 @@ void single_coroutine()
         SPDLOG_INFO(i);
         pull();
     }
+    SPDLOG_INFO("pull: {}", bool(pull));
+    if (pull)
+    {
+        pull(); // 跑最後一行
+        SPDLOG_INFO("pull: {}", bool(pull));
+    }
 }
+
+struct OnExit
+{
+    using fn_t = std::function<void()>;
+    OnExit(fn_t _fn) : fn(_fn)
+    {
+    }
+    ~OnExit()
+    {
+        fn();
+    }
+    fn_t fn;
+};
 
 void multiple_coroutine()
 {
@@ -108,14 +128,18 @@ void multiple_coroutine()
             [i, &awake_cont](push_t& _push)
             {
                 auto id = i;
+                OnExit onExit([&awake_cont, &id] { awake_cont.push(id); });
                 std::vector<int> vec{1, 2, 3};
                 for (auto& j : vec)
                 {
                     SPDLOG_INFO("id: {} {}", id, j);
+                    if (j == 2)
+                    {
+                        return;
+                    }
                     awake_cont.push(id);
                     _push();
                 }
-                _push();
             });
         coro_cont[i] = std::move(pull);
     }
@@ -128,10 +152,14 @@ void multiple_coroutine()
         if (iter != coro_cont.end())
         {
             auto& resume = *(iter->second);
-            if (!resume || !resume())
+            if (!resume)
             {
                 coro_cont.erase(iter);
                 SPDLOG_INFO("child size: {}", coro_cont.size());
+            }
+            else
+            {
+                resume();
             }
         }
         awake_cont.pop();

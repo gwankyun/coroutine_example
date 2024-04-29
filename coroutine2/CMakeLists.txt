@@ -1,6 +1,8 @@
 ﻿cmake_print_variables(CMAKE_SOURCE_DIR)
 cmake_print_variables(CMAKE_CURRENT_SOURCE_DIR)
 
+find_package(nlohmann_json REQUIRED)
+
 set(coroutine2 coroutine2)
 
 set(coroutine2_required coroutine2_required)
@@ -29,6 +31,7 @@ target_sources(${coroutine2_server}
 target_link_libraries(${coroutine2_server}
   PRIVATE
     ${coroutine2_required}
+    nlohmann_json::nlohmann_json
 )
 set_target_properties(${coroutine2_server} PROPERTIES FOLDER ${coroutine2})
 
