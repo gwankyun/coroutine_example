@@ -3,13 +3,13 @@
 #include <spdlog/fmt/bin_to_hex.h>
 #define BOOST_ALL_NO_LIB 1
 #include <boost/coroutine2/all.hpp>
+#include <filesystem>
 #include <format>
+#include <fstream>
 #include <functional>
+#include <nlohmann/json.hpp>
 #include <queue>
 #include <unordered_map>
-#include <fstream>
-#include <nlohmann/json.hpp>
-#include <filesystem>
 using json = nlohmann::json;
 namespace fs = std::filesystem;
 
@@ -65,9 +65,9 @@ void coro_example(asio::io_context& _io_context, acceptor_t& _acceptor)
     };
 
     // 每個連接一個新的函數，協程間不能共用函數，會有棧衝突
-    auto connection_coro = [&awake_cont, callback](int newID, socket_t&& socket)
+    auto connection_coro = [callback](int newID, socket_t&& socket)
     {
-        return [&awake_cont, newID, socket = std::move(socket), callback](push_t& _yield) mutable
+        return [newID, socket = std::move(socket), callback](push_t& _yield) mutable
         {
             int current = newID;
             std::vector<unsigned char> buffer;
@@ -76,9 +76,9 @@ void coro_example(asio::io_context& _io_context, acceptor_t& _acceptor)
             error_code_t error;
             std::size_t bytes;
 
-            OnExit onExit([&awake_cont, &current, callback] { awake_cont.push(current); });
-
             auto cb = callback(current, error, bytes);
+
+            OnExit onExit([&cb, &error, &bytes] { cb(error, bytes); });
 
             while (offset == 0 || buffer[offset - 1] != '\0')
             {
@@ -130,19 +130,21 @@ void coro_example(asio::io_context& _io_context, acceptor_t& _acceptor)
     // 監聽協程
     auto listen_id = 0;
     coro_cont[listen_id] = std::make_unique<pull_t>(
-        [&awake_cont, &listen_id, &callback, &_acceptor, &coro_cont, &connection_coro](push_t& _yield)
+        [&listen_id, &callback, &_acceptor, &coro_cont, &connection_coro](push_t& _yield)
         {
             int current = listen_id;
             // 自增協程標識
             int connection_id = current + 1;
-            OnExit onExit([&awake_cont, &current] { awake_cont.push(current); });
+
+            error_code_t error;
+            std::size_t bytes;
 
             auto cb = callback(current, error, bytes);
 
+            OnExit onExit([&cb, &error, &bytes] { cb(error, bytes); });
+
             while (true)
             {
-                error_code_t error;
-                std::size_t bytes;
                 socket_t socket(_acceptor.get_executor());
                 _acceptor.async_accept(socket, cb);
                 _yield();
@@ -175,6 +177,7 @@ void coro_example(asio::io_context& _io_context, acceptor_t& _acceptor)
         while (!awake_cont.empty())
         {
             auto i = awake_cont.front();
+            awake_cont.pop();
             SPDLOG_INFO("awake id: {}", i);
             auto iter = coro_cont.find(i);
             if (iter != coro_cont.end())
@@ -184,13 +187,10 @@ void coro_example(asio::io_context& _io_context, acceptor_t& _acceptor)
                 {
                     coro_cont.erase(iter);
                     SPDLOG_INFO("child size: {}", coro_cont.size());
+                    continue;
                 }
-                else
-                {
-                    resume();
-                }
+                resume();
             }
-            awake_cont.pop();
         }
     }
 }
@@ -205,7 +205,7 @@ bool is_number(const json& _config)
     return _config.is_number();
 }
 
-template<typename T, typename C>
+template <typename T, typename C>
 void config_get(const json& _config, const std::string _key, C _checker, T& _value)
 {
     if (_config.contains(_key))

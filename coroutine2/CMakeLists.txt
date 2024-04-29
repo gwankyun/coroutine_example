@@ -1,7 +1,5 @@
-﻿cmake_print_variables(CMAKE_SOURCE_DIR)
-cmake_print_variables(CMAKE_CURRENT_SOURCE_DIR)
-
-find_package(nlohmann_json REQUIRED)
+﻿find_package(nlohmann_json REQUIRED)
+check_package(nlohmann_json)
 
 set(coroutine2 coroutine2)
 
