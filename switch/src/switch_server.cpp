@@ -1,37 +1,37 @@
-﻿#include "log.hpp"
-#include "connection.h"
+﻿#include "connection.h"
+#include "log.hpp"
+#include "json.hpp"
+namespace fs = std::filesystem;
 
-#define CORO_BEGIN(_state) \
-    switch (_state)        \
-    {                      \
+#define CORO_BEGIN(_state)                                                                                             \
+    switch (_state)                                                                                                    \
+    {                                                                                                                  \
     case 0:
 
-#define CORO_YIELD(_state) \
-    do                     \
-    {                      \
-        _state = __LINE__; \
-        return;            \
-    case __LINE__:;        \
+#define CORO_YIELD(_state)                                                                                             \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        _state = __LINE__;                                                                                             \
+        return;                                                                                                        \
+    case __LINE__:;                                                                                                    \
     } while (false)
 
 #define CORO_END() }
 
-void handle_connection(
-    error_code_t _error, std::size_t _bytes,
-    acceptor_t &_acceptor,
-    std::shared_ptr<Connection> _connection)
-{
-    auto &conn = *_connection;
-    auto &socket = conn.socket;
-    auto &buffer = conn.buffer;
-    auto &offset = conn.offset;
-    auto &state = conn.state;
+const char g_end_char = '\0';
+const unsigned char g_empty_char = 0xFF;
 
-    auto cb =
-        [&, _connection](error_code_t _error, std::size_t _bytes = 0U)
-    {
-        handle_connection(_error, _bytes, _acceptor, _connection);
-    };
+void handle_connection(error_code_t _error, std::size_t _bytes, acceptor_t& _acceptor,
+                       std::shared_ptr<Connection> _connection)
+{
+    auto& conn = *_connection;
+    auto& socket = conn.socket;
+    auto& buffer = conn.buffer;
+    auto& offset = conn.offset;
+    auto& state = conn.state;
+
+    auto cb = [&, _connection](error_code_t _error, std::size_t _bytes = 0U)
+    { handle_connection(_error, _bytes, _acceptor, _connection); };
 
     CORO_BEGIN(state);
 
@@ -54,9 +54,9 @@ void handle_connection(
     }();
 
     offset = 0;
-    while (offset == 0 || buffer[offset - 1] == '\0')
+    while (offset == 0 || buffer[offset - 1] != g_end_char)
     {
-        buffer.resize(offset + 4, '\0');
+        buffer.resize(offset + 4, g_empty_char);
         socket.async_read_some(asio::buffer(buffer) += offset, cb);
         CORO_YIELD(state);
 
@@ -73,9 +73,7 @@ void handle_connection(
         }
     }
 
-    SPDLOG_INFO("{} : {}",
-                get_info(conn),
-                reinterpret_cast<const char *>(buffer.data()));
+    SPDLOG_INFO("{} : {}", get_info(conn), reinterpret_cast<const char*>(buffer.data()));
 
     buffer.resize(offset);
     offset = 0;
@@ -101,23 +99,28 @@ void handle_connection(
     CORO_END();
 }
 
-int main(int _argc, char *_argv[])
+int main(int _argc, char* _argv[])
 {
-    spdlog::set_pattern("[%C-%m-%d %T.%e] [%^%L%$] [%-10!!:%4#] %v");
+    (void)_argc;
+    (void)_argv;
+
+    auto config_file = fs::current_path().parent_path() / "config.json";
+
+    auto config = config::from_path(config_file);
+
+    std::string log_format{"[%C-%m-%d %T.%e] [%^%L%$] [%-20!!:%4#] %v"};
+    config::get(config, "log", config::is_string, log_format);
+    spdlog::set_pattern(log_format);
+
+    std::uint16_t port = 8888;
+    config::get(config, "port", config::is_number, port);
 
     namespace ip = asio::ip;
     using ip::tcp;
 
-    Argument argument;
-    argument.parse_server(_argc, _argv);
-
-    SPDLOG_INFO("port: {}", argument.port);
-
     asio::io_context io_context;
 
-    acceptor_t acceptor(
-        io_context,
-        tcp::endpoint(tcp::v4(), argument.port));
+    acceptor_t acceptor(io_context, tcp::endpoint(tcp::v4(), port));
 
     {
         auto conn = std::make_shared<Connection>(io_context);

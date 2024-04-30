@@ -69,6 +69,9 @@ if(use_cxx_23)
   set(cxx_std cxx_std_23)
 endif()
 
+find_package(nlohmann_json REQUIRED)
+check_package(nlohmann_json)
+
 set(common_required common_required)
 add_library(${common_required} INTERFACE)
 target_include_directories(${common_required} INTERFACE include)

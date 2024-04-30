@@ -1,5 +1,6 @@
 ﻿#include "connection.h"
-#include "log.hpp"
+// #include "log.hpp"
+#include <spdlog/spdlog.h>
 #include <spdlog/fmt/bin_to_hex.h>
 #define BOOST_ALL_NO_LIB 1
 #include <boost/coroutine2/all.hpp>
@@ -10,8 +11,11 @@
 #include <nlohmann/json.hpp>
 #include <queue>
 #include <unordered_map>
-using json = nlohmann::json;
+#include "json.hpp"
 namespace fs = std::filesystem;
+
+const char g_end_char = '\0';
+const unsigned char g_empty_char = 0xFF;
 
 namespace coro2 = boost::coroutines2;
 
@@ -76,13 +80,15 @@ void coro_example(asio::io_context& _io_context, acceptor_t& _acceptor)
             error_code_t error;
             std::size_t bytes;
 
+            // 回調再封裝一下
             auto cb = callback(current, error, bytes);
 
+            // 協程退出時也標記一下好統一處理
             OnExit onExit([&cb, &error, &bytes] { cb(error, bytes); });
 
-            while (offset == 0 || buffer[offset - 1] != '\0')
+            while (offset == 0 || buffer[offset - 1] != g_end_char)
             {
-                buffer.resize(offset + 4, 0xFF);
+                buffer.resize(offset + 4, g_empty_char);
                 auto buf = asio::buffer(buffer) += offset;
                 socket.async_read_some(buf, cb);
                 _yield();
@@ -195,48 +201,21 @@ void coro_example(asio::io_context& _io_context, acceptor_t& _acceptor)
     }
 }
 
-bool is_string(const json& _config)
-{
-    return _config.is_string();
-}
-
-bool is_number(const json& _config)
-{
-    return _config.is_number();
-}
-
-template <typename T, typename C>
-void config_get(const json& _config, const std::string _key, C _checker, T& _value)
-{
-    if (_config.contains(_key))
-    {
-        auto value = _config[_key];
-        if (_checker(_config))
-        {
-            _value = value.template get<T>();
-        }
-    }
-}
-
 int main(int _argc, char* _argv[])
 {
     (void)_argc;
     (void)_argv;
 
     auto config_file = fs::current_path().parent_path() / "config.json";
-    json config;
-    if (fs::exists(config_file))
-    {
-        std::ifstream config_content(config_file);
-        config = json::parse(config_content);
-    }
+
+    auto config = config::from_path(config_file);
 
     std::string log_format{"[%C-%m-%d %T.%e] [%^%L%$] [%-20!!:%4#] %v"};
-    config_get(config, "log", is_string, log_format);
+    config::get(config, "log", config::is_string, log_format);
     spdlog::set_pattern(log_format);
 
     std::uint16_t port = 8888;
-    config_get(config, "port", is_number, port);
+    config::get(config, "port", config::is_number, port);
 
     asio::io_context io_context;
     using asio::ip::tcp;

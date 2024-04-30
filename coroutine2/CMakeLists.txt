@@ -1,5 +1,4 @@
-﻿find_package(nlohmann_json REQUIRED)
-check_package(nlohmann_json)
+﻿
 
 set(coroutine2 coroutine2)
 
@@ -8,6 +7,7 @@ add_library(${coroutine2_required} INTERFACE)
 target_sources(${coroutine2_required}
   INTERFACE
     ${CMAKE_SOURCE_DIR}/include/connection.h
+    ${CMAKE_SOURCE_DIR}/include/json.hpp
 )
 target_include_directories(${coroutine2_required}
   INTERFACE

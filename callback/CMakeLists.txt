@@ -1,7 +1,4 @@
-﻿cmake_print_variables(CMAKE_SOURCE_DIR)
-cmake_print_variables(CMAKE_CURRENT_SOURCE_DIR)
-
-set(callback callback)
+﻿set(callback callback)
 
 set(callback_required callback_required)
 add_library(${callback_required} INTERFACE)
@@ -18,6 +15,7 @@ target_include_directories(${callback_required}
 target_link_libraries(${callback_required} INTERFACE
   Boost::headers
   spdlog::spdlog
+  nlohmann_json::nlohmann_json
 )
 target_compile_features(${callback_required} INTERFACE cxx_std_23)
 

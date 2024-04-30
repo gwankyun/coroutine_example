@@ -1,7 +1,4 @@
-﻿cmake_print_variables(CMAKE_SOURCE_DIR)
-cmake_print_variables(CMAKE_CURRENT_SOURCE_DIR)
-
-set(switch switch)
+﻿set(switch switch)
 
 set(switch_required switch_required)
 add_library(${switch_required} INTERFACE)
@@ -16,6 +13,7 @@ target_include_directories(${switch_required}
 target_link_libraries(${switch_required} INTERFACE
   Boost::headers
   spdlog::spdlog
+  nlohmann_json::nlohmann_json
 )
 target_compile_features(${switch_required} INTERFACE cxx_std_23)
 

@@ -1,7 +1,4 @@
-﻿cmake_print_variables(CMAKE_SOURCE_DIR)
-cmake_print_variables(CMAKE_CURRENT_SOURCE_DIR)
-
-set(callcc callcc)
+﻿set(callcc callcc)
 
 set(callcc_required callcc_required)
 add_library(${callcc_required} INTERFACE)
