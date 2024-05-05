@@ -8,6 +8,8 @@ const unsigned char g_empty_char = 0xFF;
 int g_count = 0;
 int g_reconnect = 0;
 
+using endpoint_t = asio::ip::tcp::endpoint;
+
 void on_read(error_code_t _error, std::size_t _bytes, std::shared_ptr<Connection> _connection)
 {
     auto& conn = *_connection;
@@ -75,19 +77,20 @@ void on_write(error_code_t _error, std::size_t _bytes, std::shared_ptr<Connectio
     }
 }
 
-void on_connect(error_code_t _error, std::shared_ptr<Connection> _connection, asio::ip::tcp::endpoint &_endpoint)
+void on_connect(error_code_t _error, std::shared_ptr<Connection> _connection, endpoint_t& _endpoint)
 {
     auto& conn = *_connection;
+    auto& socket = conn.socket;
     if (_error)
     {
         SPDLOG_WARN("_error: {}", _error.message());
         g_reconnect++;
-        conn.socket.async_connect(_endpoint, [_connection, &_endpoint](error_code_t _error)
-                                  { on_connect(_error, _connection, _endpoint); });
+        auto connect_cb = [_connection, &_endpoint](error_code_t _error)
+        { on_connect(_error, _connection, _endpoint); };
+        socket.async_connect(_endpoint, connect_cb);
         return;
     }
 
-    auto& socket = conn.socket;
     auto& buffer = conn.buffer;
     auto& offset = conn.offset;
 
@@ -121,17 +124,14 @@ int main(int _argc, char* _argv[])
 
     asio::io_context io_context;
 
-    auto endpoint = asio::ip::tcp::endpoint(asio::ip::make_address(ip), port);
+    endpoint_t endpoint(asio::ip::make_address(ip), port);
 
-    std::vector<std::shared_ptr<Connection>> conn_vec(connection_number);
-
-    auto id = 0;
-    for (auto& i : conn_vec)
+    for (int id = 0; id != connection_number; ++id)
     {
-        i = std::make_shared<Connection>(io_context);
+        auto i = std::make_shared<Connection>(io_context);
         i->id = id;
-        id++;
-        i->socket.async_connect(endpoint, [=, &endpoint](error_code_t _error) { on_connect(_error, i, endpoint); });
+        auto connect_cb = [=, &endpoint](error_code_t _error) { on_connect(_error, i, endpoint); };
+        i->socket.async_connect(endpoint, connect_cb);
     }
 
     io_context.run();

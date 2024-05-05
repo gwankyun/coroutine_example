@@ -1,8 +1,9 @@
 ﻿#include "connection.h"
 // #include "log.hpp"
-#include <spdlog/spdlog.h>
 #include <spdlog/fmt/bin_to_hex.h>
+#include <spdlog/spdlog.h>
 #define BOOST_ALL_NO_LIB 1
+#include "json.hpp"
 #include <boost/coroutine2/all.hpp>
 #include <filesystem>
 #include <format>
@@ -11,11 +12,14 @@
 #include <nlohmann/json.hpp>
 #include <queue>
 #include <unordered_map>
-#include "json.hpp"
 namespace fs = std::filesystem;
 
-const char g_end_char = '\0';
-const unsigned char g_empty_char = 0xFF;
+struct Global
+{
+    const char end_char = '\0';
+    const unsigned char empty_char = 0xFF;
+    int wait_seconds = 3;
+} global;
 
 namespace coro2 = boost::coroutines2;
 
@@ -45,6 +49,8 @@ struct OnExit
     }
     fn_t fn;
 };
+
+using steady_timer_t = asio::steady_timer;
 
 void coro_example(asio::io_context& _io_context, acceptor_t& _acceptor)
 {
@@ -86,9 +92,9 @@ void coro_example(asio::io_context& _io_context, acceptor_t& _acceptor)
             // 協程退出時也標記一下好統一處理
             OnExit onExit([&cb, &error, &bytes] { cb(error, bytes); });
 
-            while (offset == 0 || buffer[offset - 1] != g_end_char)
+            while (offset == 0 || buffer[offset - 1] != global.end_char)
             {
-                buffer.resize(offset + 4, g_empty_char);
+                buffer.resize(offset + 4, global.empty_char);
                 auto buf = asio::buffer(buffer) += offset;
                 socket.async_read_some(buf, cb);
                 _yield();
@@ -106,7 +112,14 @@ void coro_example(asio::io_context& _io_context, acceptor_t& _acceptor)
                 }
             }
 
-            SPDLOG_INFO("{} id: {} {}", get_info(socket), current, reinterpret_cast<const char*>(buffer.data()));
+            auto buf = reinterpret_cast<const char*>(buffer.data());
+            SPDLOG_INFO("{} id: {} {}", get_info(socket), current, buf);
+
+            asio::chrono::seconds t(global.wait_seconds);
+            steady_timer_t timer(socket.get_executor(), t);
+            timer.async_wait(cb);
+            _yield();
+            SPDLOG_INFO("{} timeout!", get_info(socket));
 
             buffer.resize(offset);
             offset = 0;

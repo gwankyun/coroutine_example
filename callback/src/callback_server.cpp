@@ -2,12 +2,21 @@
 #include "json.hpp"
 namespace fs = std::filesystem;
 
-const char g_end_char = '\0';
-const unsigned char g_empty_char = 0xFF;
+struct Global
+{
+    const char end_char = '\0';
+    const unsigned char empty_char = 0xFF;
+    int wait_seconds = 3;
+} global;
 
-void on_write(error_code_t _error, std::size_t _bytes, std::shared_ptr<Connection> _connection);
+template <typename T>
+using sptr = std::shared_ptr<T>;
 
-void on_read(error_code_t _error, std::size_t _bytes, std::shared_ptr<Connection> _connection)
+using steady_timer_t = asio::steady_timer;
+
+void on_write(error_code_t _error, std::size_t _bytes, sptr<Connection> _connection);
+
+void on_read(error_code_t _error, std::size_t _bytes, sptr<Connection> _connection)
 {
     auto& conn = *_connection;
     if (_error)
@@ -26,24 +35,37 @@ void on_read(error_code_t _error, std::size_t _bytes, std::shared_ptr<Connection
         offset += _bytes;
     }
 
-    if (offset == 0 || buffer[offset - 1] == g_end_char)
+    if (offset == 0 || buffer[offset - 1] == global.end_char)
     {
         SPDLOG_INFO("{} : {}", get_info(conn), reinterpret_cast<const char*>(buffer.data()));
 
-        buffer.resize(offset);
-        offset = 0;
-        auto buf = asio::buffer(buffer) += offset;
-        socket.async_write_some(buf, callback(_connection, on_write));
+        asio::chrono::seconds t(global.wait_seconds);
+        auto timer = std::make_shared<steady_timer_t>(socket.get_executor(), t);
+        timer->async_wait(
+            [timer, &conn, _connection, &buffer, &offset, &socket](error_code_t _error)
+            {
+                if (_error)
+                {
+                    SPDLOG_INFO("{}: {}", get_info(conn), _error.message());
+                    return;
+                }
+
+                SPDLOG_INFO("{} timeout!", get_info(conn));
+                buffer.resize(offset);
+                offset = 0;
+                auto buf = asio::buffer(buffer) += offset;
+                socket.async_write_some(buf, callback(_connection, on_write));
+            });
     }
     else
     {
-        buffer.resize(offset + 4, g_empty_char);
+        buffer.resize(offset + 4, global.empty_char);
         auto buf = asio::buffer(buffer) += offset;
         socket.async_read_some(buf, callback(_connection, on_read));
     }
 }
 
-void on_write(error_code_t _error, std::size_t _bytes, std::shared_ptr<Connection> _connection)
+void on_write(error_code_t _error, std::size_t _bytes, sptr<Connection> _connection)
 {
     auto& conn = *_connection;
     if (_error)
@@ -67,7 +89,7 @@ void on_write(error_code_t _error, std::size_t _bytes, std::shared_ptr<Connectio
         SPDLOG_INFO("{} write fininish!", get_info(conn));
 
         offset = 0;
-        buffer.resize(offset + 4, g_empty_char);
+        buffer.resize(offset + 4, global.empty_char);
         auto buf = asio::buffer(buffer) += offset;
         socket.async_read_some(buf, callback(_connection, on_read));
     }
@@ -78,7 +100,7 @@ void on_write(error_code_t _error, std::size_t _bytes, std::shared_ptr<Connectio
     }
 }
 
-void on_accept(error_code_t _error, acceptor_t& _acceptor, std::shared_ptr<Connection> _connection)
+void on_accept(error_code_t _error, acceptor_t& _acceptor, sptr<Connection> _connection)
 {
     auto& conn = *_connection;
     if (_error)
@@ -90,15 +112,16 @@ void on_accept(error_code_t _error, acceptor_t& _acceptor, std::shared_ptr<Conne
     auto& socket = conn.socket;
     auto& buffer = conn.buffer;
     auto& offset = conn.offset;
+    auto& executor = _acceptor.get_executor();
 
-    auto new_conn = std::make_shared<Connection>(_acceptor.get_executor());
-    _acceptor.async_accept(new_conn->socket,
-                           [new_conn, &_acceptor](error_code_t error) { on_accept(error, _acceptor, new_conn); });
+    auto new_conn = std::make_shared<Connection>(executor);
+    auto accept_cb = [new_conn, &_acceptor](error_code_t error) { on_accept(error, _acceptor, new_conn); };
+    _acceptor.async_accept(new_conn->socket, accept_cb);
 
     SPDLOG_INFO("{}", get_info(conn));
 
     offset = 0;
-    buffer.resize(offset + 4, g_empty_char);
+    buffer.resize(offset + 4, global.empty_char);
     auto buf = asio::buffer(buffer) += offset;
     socket.async_read_some(buf, callback(_connection, on_read));
 }
@@ -126,8 +149,8 @@ int main(int _argc, char* _argv[])
 
     {
         auto conn = std::make_shared<Connection>(io_context);
-        acceptor.async_accept(conn->socket,
-                              [conn, &acceptor](error_code_t error) { on_accept(error, acceptor, conn); });
+        auto accept_cb = [conn, &acceptor](error_code_t error) { on_accept(error, acceptor, conn); };
+        acceptor.async_accept(conn->socket, accept_cb);
     }
 
     io_context.run();
