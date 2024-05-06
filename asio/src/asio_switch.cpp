@@ -55,10 +55,10 @@ void handle(asio::io_context& _io_context, int _id, std::shared_ptr<std::vector<
     CORO_BEGIN(*_state);
     while (_offset < _data->size())
     {
+        SPDLOG_INFO("id: {} value: {}", _id, (*_data)[_offset]);
         asio::post(_io_context,
                    [&_io_context, _id, _data, _offset, _state]
                    {
-                       SPDLOG_INFO("id: {} value: {}", _id, (*_data)[_offset]);
                        handle(_io_context, _id, _data, _offset + 1, _state);
                    });
         CORO_YIELD(*_state);

@@ -46,8 +46,8 @@ set(msvc_options)
 list(APPEND msvc_options "/W4" "/MP" "/Zc:__cplusplus" "/experimental:module")
 
 # warning LNK4099
-option(disable_LNK4996 "" ON)
-if(disable_LNK4996)
+option(disable_LNK4099 "" ON)
+if(disable_LNK4099)
   list(APPEND msvc_options "/Z7")
 endif()
 

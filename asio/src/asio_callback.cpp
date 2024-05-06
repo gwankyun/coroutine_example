@@ -34,10 +34,10 @@ void handle(asio::io_context& _io_context, int _id, std::shared_ptr<std::vector<
 {
     if (_offset < _data->size())
     {
+        SPDLOG_INFO("id: {} value: {}", _id, (*_data)[_offset]);
         asio::post(_io_context,
                    [&_io_context, _id, _data, _offset]
                    {
-                       SPDLOG_INFO("id: {} value: {}", _id, (*_data)[_offset]);
                        handle(_io_context, _id, _data, _offset + 1);
                    });
     }
@@ -63,7 +63,7 @@ int main()
 
         handle(io_context, i, vec, 0);
     }
-    
+
     io_context.run();
 
     return 0;

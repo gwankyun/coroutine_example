@@ -98,12 +98,13 @@ void handle(asio::io_context& _io_context)
     {
         return [&_io_context, &awake_cont, id](push_t& _yield)
         {
-            OnExit onExit([&awake_cont, id] { awake_cont.push(id); });
+            auto cb = [&awake_cont, id] { awake_cont.push(id); };
+            OnExit onExit(cb);
             std::vector<int> data{1, 2, 3};
             for (auto& i : data)
             {
                 SPDLOG_INFO("id: {} value: {}", id, i);
-                asio::post(_io_context, [&awake_cont, id] { awake_cont.push(id); });
+                asio::post(_io_context, cb);
                 _yield();
             }
         };
