@@ -39,3 +39,14 @@ target_link_libraries(${asio_continuatioin} PRIVATE
   spdlog::spdlog
   Boost::context
 )
+
+set(asio_fiber asio_fiber)
+add_executable(${asio_fiber})
+target_sources(${asio_fiber} PRIVATE
+  src/asio_fiber.cpp
+)
+target_link_libraries(${asio_fiber} PRIVATE
+  Boost::headers
+  spdlog::spdlog
+  Boost::context
+)

@@ -99,7 +99,7 @@ void handle(asio::io_context& _io_context)
 
     auto create_continuation = [&_io_context, &awake_cont, &main](int id)
     {
-        return [&_io_context, &awake_cont, id, &main](continuation_t&& _sink)
+        auto continuation = [&_io_context, &awake_cont, id, &main](continuation_t&& _sink)
         {
             auto cb = [&awake_cont, id] { awake_cont.push(id); };
             OnExit onExit(cb);
@@ -112,11 +112,12 @@ void handle(asio::io_context& _io_context)
             }
             return std::move(_sink);
         };
+        return context::callcc(continuation);
     };
 
     for (auto id = 0; id < 3; id++)
     {
-        continuation_cont[id] = std::make_unique<continuation_t>(context::callcc(create_continuation(id)));
+        continuation_cont[id] = std::make_unique<continuation_t>(create_continuation(id));
     }
 
     main = std::make_unique<continuation_t>(context::callcc(
