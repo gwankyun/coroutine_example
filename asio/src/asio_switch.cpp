@@ -23,32 +23,6 @@
 namespace asio = boost::asio;
 using error_code_t = boost::system::error_code;
 
-void handle_old(error_code_t _error, int& _state, asio::io_context& _io_context, asio::steady_timer& _timer)
-{
-    auto cb = [_error, &_state, &_io_context, &_timer](error_code_t _e = error_code_t{})
-    { handle_old(_e, _state, _io_context, _timer); };
-
-    CORO_BEGIN(_state);
-    asio::post(_io_context, cb);
-    CORO_YIELD(_state);
-
-    SPDLOG_INFO("read");
-    asio::post(_io_context, cb);
-    CORO_YIELD(_state);
-
-    SPDLOG_INFO("write");
-    _timer.async_wait([cb](error_code_t _e) { cb(_e); });
-    CORO_YIELD(_state);
-
-    if (_error)
-    {
-        SPDLOG_INFO("{}", _error.message());
-        return;
-    }
-    SPDLOG_INFO("timeout");
-    CORO_END();
-}
-
 void handle(asio::io_context& _io_context, int _id, std::shared_ptr<std::vector<int>> _data, std::size_t _offset,
             std::shared_ptr<int> _state)
 {
@@ -56,12 +30,34 @@ void handle(asio::io_context& _io_context, int _id, std::shared_ptr<std::vector<
     while (_offset < _data->size())
     {
         SPDLOG_INFO("id: {} value: {}", _id, (*_data)[_offset]);
-        asio::post(_io_context,
-                   [&_io_context, _id, _data, _offset, _state]
-                   {
-                       handle(_io_context, _id, _data, _offset + 1, _state);
-                   });
+        asio::post(_io_context, [&_io_context, _id, _data, _offset, _state]
+                   { handle(_io_context, _id, _data, _offset + 1, _state); });
         CORO_YIELD(*_state);
+    }
+    CORO_END();
+}
+
+void accept_handle(asio::io_context& _io_context, int& _id, int& _state)
+{
+    CORO_BEGIN(_state);
+    while (_id < 3)
+    {
+        asio::post(_io_context, [&_io_context, &_id, &_state] { accept_handle(_io_context, _id, _state); });
+        CORO_YIELD(_state);
+
+        [&_io_context, _id]
+        {
+            auto _data = std::make_shared<std::vector<int>>();
+            _data->push_back(1);
+            _data->push_back(2);
+            _data->push_back(3);
+
+            auto state = std::make_shared<int>(0);
+
+            asio::post(_io_context, [&_io_context, _id, _data, state] { handle(_io_context, _id, _data, 0, state); });
+        }();
+
+        _id++;
     }
     CORO_END();
 }
@@ -75,22 +71,17 @@ int main()
 
     asio::steady_timer timer(io_context, asio::chrono::seconds(1));
 
-    // int state = 0;
-    // handle_old(error_code_t{}, state, io_context, timer);
+    auto start = std::chrono::steady_clock::now();
 
-    for (auto i = 0; i < 3; i++)
-    {
-        auto vec = std::make_shared<std::vector<int>>();
-        vec->push_back(1);
-        vec->push_back(2);
-        vec->push_back(3);
-
-        auto state = std::make_shared<int>(0);
-
-        handle(io_context, i, vec, 0, state);
-    }
+    int id = 0;
+    int state = 0;
+    accept_handle(io_context, id, state);
 
     io_context.run();
+
+    auto end = std::chrono::steady_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    SPDLOG_INFO("used times: {}", duration.count());
 
     return 0;
 }

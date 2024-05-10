@@ -87,7 +87,7 @@ struct OnExit
     fn_t fn;
 };
 
-void handle(asio::io_context& _io_context)
+void handle(asio::io_context& _io_context, bool _manage_on_sub)
 {
     std::unique_ptr<continuation_t> main;
 
@@ -120,42 +120,56 @@ void handle(asio::io_context& _io_context)
         continuation_cont[id] = std::make_unique<continuation_t>(create_continuation(id));
     }
 
-    main = std::make_unique<continuation_t>(context::callcc(
-        [&_io_context, &continuation_cont, &awake_cont](continuation_t&& _sink)
+    auto main_continuation = [&]
+    {
+        while (!continuation_cont.empty())
         {
-            while (!continuation_cont.empty())
+            // 實際執行異步操作
+            _io_context.run();
+
+            if (!awake_cont.empty())
             {
-                // 實際執行異步操作
-                _io_context.run();
-
-                if (!awake_cont.empty())
-                {
-                    SPDLOG_INFO("awake_cont size: {}", awake_cont.size());
-                }
-
-                // 簡單的協程調度，按awake_cont中先進先出的順序喚醒協程。
-                while (!awake_cont.empty())
-                {
-                    auto i = awake_cont.front();
-                    awake_cont.pop();
-                    SPDLOG_INFO("awake id: {}", i);
-                    auto iter = continuation_cont.find(i);
-                    if (iter != continuation_cont.end())
-                    {
-                        auto& continuation = *(iter->second);
-                        if (!continuation)
-                        {
-                            continuation_cont.erase(iter);
-                            SPDLOG_INFO("child size: {}", continuation_cont.size());
-                            continue;
-                        }
-                        continuation = continuation.resume();
-                    }
-                }
+                SPDLOG_DEBUG("awake_cont size: {}", awake_cont.size());
             }
 
-            return std::move(_sink);
-        }));
+            // 簡單的協程調度，按awake_cont中先進先出的順序喚醒協程。
+            while (!awake_cont.empty())
+            {
+                auto i = awake_cont.front();
+                awake_cont.pop();
+                SPDLOG_DEBUG("awake id: {}", i);
+                auto iter = continuation_cont.find(i);
+                if (iter != continuation_cont.end())
+                {
+                    auto& continuation = *(iter->second);
+                    if (!continuation)
+                    {
+                        continuation_cont.erase(iter);
+                        SPDLOG_DEBUG("child size: {}", continuation_cont.size());
+                        continue;
+                    }
+                    continuation = continuation.resume();
+                }
+            }
+        }
+    };
+
+    if (_manage_on_sub)
+    {
+        SPDLOG_INFO("create main");
+        SPDLOG_INFO("resume main");
+        main = std::make_unique<continuation_t>(context::callcc(
+            [&main_continuation](continuation_t&& _sink)
+            {
+                SPDLOG_INFO("enter main");
+                main_continuation();
+                return std::move(_sink);
+            }));
+    }
+    else
+    {
+        main_continuation();
+    }
 }
 
 int main()
@@ -166,7 +180,7 @@ int main()
     asio::io_context io_context;
 
     // handle_old(io_context);
-    handle(io_context);
+    handle(io_context, true);
 
     return 0;
 }

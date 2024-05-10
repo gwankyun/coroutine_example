@@ -1,11 +1,24 @@
-﻿set(asio_callback asio_callback)
+﻿set(asio_common asio_common)
+add_library(${asio_common} INTERFACE)
+target_link_libraries(${asio_common} INTERFACE
+  Boost::headers
+  spdlog::spdlog
+)
+
+set(context_common context_common)
+add_library(${context_common} INTERFACE)
+target_link_libraries(${context_common} INTERFACE
+  ${asio_common}
+  Boost::context
+)
+
+set(asio_callback asio_callback)
 add_executable(${asio_callback})
 target_sources(${asio_callback} PRIVATE
   src/asio_callback.cpp
 )
 target_link_libraries(${asio_callback} PRIVATE
-  Boost::headers
-  spdlog::spdlog
+  ${asio_common}
 )
 
 set(asio_switch asio_switch)
@@ -14,8 +27,7 @@ target_sources(${asio_switch} PRIVATE
   src/asio_switch.cpp
 )
 target_link_libraries(${asio_switch} PRIVATE
-  Boost::headers
-  spdlog::spdlog
+  ${asio_common}
 )
 
 set(asio_coroutine2 asio_coroutine2)
@@ -24,9 +36,7 @@ target_sources(${asio_coroutine2} PRIVATE
   src/asio_coroutine2.cpp
 )
 target_link_libraries(${asio_coroutine2} PRIVATE
-  Boost::headers
-  spdlog::spdlog
-  Boost::context
+  ${context_common}
 )
 
 set(asio_continuatioin asio_continuatioin)
@@ -35,9 +45,7 @@ target_sources(${asio_continuatioin} PRIVATE
   src/asio_continuatioin.cpp
 )
 target_link_libraries(${asio_continuatioin} PRIVATE
-  Boost::headers
-  spdlog::spdlog
-  Boost::context
+  ${context_common}
 )
 
 set(asio_fiber asio_fiber)
@@ -46,7 +54,5 @@ target_sources(${asio_fiber} PRIVATE
   src/asio_fiber.cpp
 )
 target_link_libraries(${asio_fiber} PRIVATE
-  Boost::headers
-  spdlog::spdlog
-  Boost::context
+  ${context_common}
 )

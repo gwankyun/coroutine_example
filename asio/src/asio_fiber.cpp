@@ -6,6 +6,7 @@
 #include <boost/context/fiber.hpp>
 #include <queue>
 #include <unordered_map>
+#include <chrono>
 
 namespace context = boost::context;
 using fiber_t = context::fiber;
@@ -26,7 +27,7 @@ struct OnExit
     fn_t fn;
 };
 
-void handle(asio::io_context& _io_context)
+void handle(asio::io_context& _io_context, bool _manage_on_sub, int _count)
 {
     std::unique_ptr<fiber_t> main;
 
@@ -53,51 +54,66 @@ void handle(asio::io_context& _io_context)
         };
     };
 
-    for (auto id = 0; id < 3; id++)
+    for (auto id = 0; id < _count; id++)
     {
         fiber_cont[id] = std::make_unique<fiber_t>(create_fiber(id));
         // 和continuation不一樣，創建後不會自動執行。
-        *(fiber_cont[id]) = std::move(*(fiber_cont[id])).resume();
+        auto& fiber = *fiber_cont[id];
+        fiber = std::move(fiber).resume();
     }
 
-    main = std::make_unique<fiber_t>(
-        [&_io_context, &fiber_cont, &awake_cont](fiber_t&& _sink)
+    auto main_fiber = [&]
+    {
+        while (!fiber_cont.empty())
         {
-            while (!fiber_cont.empty())
+            // 實際執行異步操作
+            _io_context.run();
+
+            if (!awake_cont.empty())
             {
-                // 實際執行異步操作
-                _io_context.run();
-
-                if (!awake_cont.empty())
-                {
-                    SPDLOG_INFO("awake_cont size: {}", awake_cont.size());
-                }
-
-                // 簡單的協程調度，按awake_cont中先進先出的順序喚醒協程。
-                while (!awake_cont.empty())
-                {
-                    auto i = awake_cont.front();
-                    awake_cont.pop();
-                    SPDLOG_INFO("awake id: {}", i);
-                    auto iter = fiber_cont.find(i);
-                    if (iter != fiber_cont.end())
-                    {
-                        auto& fiber = *(iter->second);
-                        if (!fiber)
-                        {
-                            fiber_cont.erase(iter);
-                            SPDLOG_INFO("child size: {}", fiber_cont.size());
-                            continue;
-                        }
-                        fiber = std::move(fiber).resume();
-                    }
-                }
+                SPDLOG_DEBUG("awake_cont size: {}", awake_cont.size());
             }
 
-            return std::move(_sink);
-        });
+            // 簡單的協程調度，按awake_cont中先進先出的順序喚醒協程。
+            while (!awake_cont.empty())
+            {
+                auto i = awake_cont.front();
+                awake_cont.pop();
+                SPDLOG_DEBUG("awake id: {}", i);
+                auto iter = fiber_cont.find(i);
+                if (iter != fiber_cont.end())
+                {
+                    auto& fiber = *(iter->second);
+                    if (!fiber)
+                    {
+                        fiber_cont.erase(iter);
+                        SPDLOG_DEBUG("child size: {}", fiber_cont.size());
+                        continue;
+                    }
+                    fiber = std::move(fiber).resume();
+                }
+            }
+        }
+    };
 
-    *main = std::move(*main).resume();
+    if (_manage_on_sub)
+    {
+        SPDLOG_INFO("create main");
+        main = std::make_unique<fiber_t>(
+            [&main_fiber](fiber_t&& _sink)
+            {
+                SPDLOG_INFO("enter main");
+                main_fiber();
+                return std::move(_sink);
+            });
+
+        SPDLOG_INFO("resume main");
+        *main = std::move(*main).resume();
+    }
+    else
+    {
+        main_fiber();
+    }
 }
 
 int main()
@@ -106,8 +122,13 @@ int main()
     spdlog::set_pattern(log_format);
 
     asio::io_context io_context;
+    namespace chrono = std::chrono;
 
-    handle(io_context);
+    auto start = chrono::steady_clock::now();
+    handle(io_context, true, 3);
+    auto end = chrono::steady_clock::now();
+    auto duration = chrono::duration_cast<chrono::milliseconds>(end - start);
+    SPDLOG_INFO("used times: {}", duration.count());
 
     return 0;
 }

@@ -86,7 +86,7 @@ struct OnExit
 using pull_t = pull_type<>;
 using push_t = push_type<>;
 
-void handle(asio::io_context& _io_context)
+void handle(asio::io_context& _io_context, int _count)
 {
     // 協程容器
     std::unordered_map<int, std::unique_ptr<pull_t>> coro_cont;
@@ -110,7 +110,7 @@ void handle(asio::io_context& _io_context)
         };
     };
 
-    for (auto id = 0; id < 3; id++)
+    for (auto id = 0; id < _count; id++)
     {
         coro_cont[id] = std::make_unique<pull_t>(create_coro(id));
     }
@@ -122,7 +122,7 @@ void handle(asio::io_context& _io_context)
 
         if (!awake_cont.empty())
         {
-            SPDLOG_INFO("awake_cont size: {}", awake_cont.size());
+            SPDLOG_DEBUG("awake_cont size: {}", awake_cont.size());
         }
 
         // 簡單的協程調度，按awake_cont中先進先出的順序喚醒協程。
@@ -130,7 +130,7 @@ void handle(asio::io_context& _io_context)
         {
             auto i = awake_cont.front();
             awake_cont.pop();
-            SPDLOG_INFO("awake id: {}", i);
+            SPDLOG_DEBUG("awake id: {}", i);
             auto iter = coro_cont.find(i);
             if (iter != coro_cont.end())
             {
@@ -138,7 +138,7 @@ void handle(asio::io_context& _io_context)
                 if (!resume)
                 {
                     coro_cont.erase(iter);
-                    SPDLOG_INFO("child size: {}", coro_cont.size());
+                    SPDLOG_DEBUG("child size: {}", coro_cont.size());
                     continue;
                 }
                 resume();
@@ -155,7 +155,11 @@ int main()
     asio::io_context io_context;
 
     // handle_old(io_context);
-    handle(io_context);
+    auto start = std::chrono::steady_clock::now();
+    handle(io_context, 3);
+    auto end = std::chrono::steady_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    SPDLOG_INFO("used times: {}", duration.count());
 
     return 0;
 }
