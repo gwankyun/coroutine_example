@@ -1,107 +1,56 @@
-﻿#include <boost/asio.hpp>
-#include <boost/system.hpp> // boost::system::error_code
-#include <spdlog/spdlog.h>
-#include <string>
-#define BOOST_ALL_NO_LIB 1
-#include <boost/coroutine2/all.hpp>
-#include <memory>
-#include <vector>
+﻿#include <memory>
 #include <queue>
+#include <string>
 #include <unordered_map>
+#include <vector>
+
+#include <spdlog/spdlog.h>
+#define BOOST_ALL_NO_LIB 1
+#include <boost/asio.hpp>
+#include <boost/coroutine2/all.hpp>
+#include <boost/system.hpp> // boost::system::error_code
+
+#include "on_exit.hpp"
 
 namespace asio = boost::asio;
-using error_code_t = boost::system::error_code;
 
 namespace coro2 = boost::coroutines2;
 
-template <typename T = void>
-using pull_type = typename coro2::coroutine<T>::pull_type;
-
-template <typename T = void>
-using push_type = typename coro2::coroutine<T>::push_type;
-
-void handle_old(asio::io_context& _io_context)
+namespace type
 {
-    using pull_t = pull_type<>;
-    using push_t = push_type<>;
+    template <typename T = void>
+    using pull_type = typename coro2::coroutine<T>::pull_type;
 
-    bool flag = false;
+    template <typename T = void>
+    using push_type = typename coro2::coroutine<T>::push_type;
 
-    pull_t resume(
-        [&flag, &_io_context](push_t& _yield)
-        {
-            error_code_t error;
-            auto cb = [&flag, &error](error_code_t _e = error_code_t{})
-            {
-                error = _e;
-                flag = true;
-            };
-
-            asio::post(_io_context, cb);
-            flag = false;
-            _yield();
-
-            SPDLOG_INFO("read");
-            asio::post(_io_context, cb);
-            flag = false;
-            _yield();
-
-            SPDLOG_INFO("write");
-            asio::steady_timer timer(_io_context, asio::chrono::seconds(1));
-            timer.async_wait(cb);
-            flag = false;
-            _yield();
-
-            if (error)
-            {
-                SPDLOG_INFO("{}", error.message());
-                return;
-            }
-            SPDLOG_INFO("timeout");
-        });
-
-    while (resume)
-    {
-        _io_context.run();
-        if (flag)
-        {
-            resume();
-        }
-    }
+    using pull = pull_type<>;
+    using push = push_type<>;
+    using id = int;
 }
 
-struct OnExit
-{
-    using fn_t = std::function<void()>;
-    OnExit(fn_t _fn) : fn(_fn)
-    {
-    }
-    ~OnExit()
-    {
-        fn();
-    }
-    fn_t fn;
-};
-
-using pull_t = pull_type<>;
-using push_t = push_type<>;
+namespace t = type;
 
 void handle(asio::io_context& _io_context, int _count)
 {
     // 協程容器
-    std::unordered_map<int, std::unique_ptr<pull_t>> coro_cont;
+    std::unordered_map<t::id, std::unique_ptr<t::pull>> coro_cont;
 
     // 待喚醒協程隊列。
-    std::queue<int> awake_cont;
+    std::queue<t::id> awake_cont;
 
-    auto create_coro = [&_io_context, &awake_cont](int id)
+    auto create_coro = [&](t::id id)
     {
-        return [&_io_context, &awake_cont, id](push_t& _yield)
+        return [&, id](t::push& _yield)
         {
-            auto cb = [&awake_cont, id] { awake_cont.push(id); };
-            OnExit onExit(cb);
-            std::vector<int> data{1, 2, 3};
-            for (auto& i : data)
+            auto cb = [&, id] { awake_cont.push(id); };
+            ON_EXIT(cb);
+            std::vector<std::string> vec{
+                "a",
+                "b",
+                "c",
+            };
+            for (auto& i : vec)
             {
                 SPDLOG_INFO("id: {} value: {}", id, i);
                 asio::post(_io_context, cb);
@@ -112,7 +61,7 @@ void handle(asio::io_context& _io_context, int _count)
 
     for (auto id = 0; id < _count; id++)
     {
-        coro_cont[id] = std::make_unique<pull_t>(create_coro(id));
+        coro_cont[id] = std::make_unique<t::pull>(create_coro(id));
     }
 
     while (!coro_cont.empty())
@@ -154,7 +103,6 @@ int main()
 
     asio::io_context io_context;
 
-    // handle_old(io_context);
     auto start = std::chrono::steady_clock::now();
     handle(io_context, 3);
     auto end = std::chrono::steady_clock::now();

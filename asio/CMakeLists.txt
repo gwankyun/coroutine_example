@@ -4,6 +4,7 @@ target_link_libraries(${asio_common} INTERFACE
   Boost::headers
   spdlog::spdlog
 )
+target_include_directories(${asio_common} INTERFACE include)
 
 set(context_common context_common)
 add_library(${context_common} INTERFACE)
@@ -48,6 +49,15 @@ target_link_libraries(${asio_continuatioin} PRIVATE
   ${context_common}
 )
 
+set(asio_context_fiber asio_context_fiber)
+add_executable(${asio_context_fiber})
+target_sources(${asio_context_fiber} PRIVATE
+  src/asio_context_fiber.cpp
+)
+target_link_libraries(${asio_context_fiber} PRIVATE
+  ${context_common}
+)
+
 set(asio_fiber asio_fiber)
 add_executable(${asio_fiber})
 target_sources(${asio_fiber} PRIVATE
@@ -55,4 +65,5 @@ target_sources(${asio_fiber} PRIVATE
 )
 target_link_libraries(${asio_fiber} PRIVATE
   ${context_common}
+  Boost::fiber
 )

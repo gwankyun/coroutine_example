@@ -1,19 +1,37 @@
-﻿#include <boost/asio.hpp>
-#include <boost/system.hpp> // boost::system::error_code
-#include <memory>
-#include <spdlog/spdlog.h>
+﻿#include <memory>
 #include <string>
 #include <vector>
 
-namespace asio = boost::asio;
-using error_code_t = boost::system::error_code;
+#include <boost/asio.hpp>
+#include <spdlog/spdlog.h>
 
-void handle(asio::io_context& _io_context, int _id, std::shared_ptr<std::vector<int>> _data, std::size_t _offset)
+namespace asio = boost::asio;
+
+namespace type
 {
-    if (_offset < _data->size())
+    using id = int;
+}
+
+namespace t = type;
+
+struct Data
+{
+    std::vector<std::string> value;
+    std::size_t offset = 0;
+    t::id id;
+};
+
+void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data)
+{
+    auto& offset = _data->offset;
+    auto& value = _data->value;
+    auto& id = _data->id;
+
+    if (offset < value.size())
     {
-        SPDLOG_INFO("id: {} value: {}", _id, (*_data)[_offset]);
-        asio::post(_io_context, [&_io_context, _id, _data, _offset] { handle(_io_context, _id, _data, _offset + 1); });
+        SPDLOG_INFO("id: {} value: {}", id, value[offset]);
+        offset += 1;
+        asio::post(_io_context, [&, _data] { handle(_io_context, _data); });
     }
 }
 
@@ -21,14 +39,15 @@ void accept_handle(asio::io_context& _io_context, int _id)
 {
     if (_id < 3)
     {
-        auto vec = std::make_shared<std::vector<int>>();
-        vec->push_back(1);
-        vec->push_back(2);
-        vec->push_back(3);
+        auto data = std::make_shared<Data>();
+        data->value.push_back("a");
+        data->value.push_back("b");
+        data->value.push_back("c");
+        data->id = _id;
 
-        asio::post(_io_context, [&_io_context, _id, vec] { handle(_io_context, _id, vec, 0); });
+        asio::post(_io_context, [&, data] { handle(_io_context, data); });
 
-        asio::post(_io_context, [&_io_context, _id] { accept_handle(_io_context, _id + 1); });
+        asio::post(_io_context, [&, _id] { accept_handle(_io_context, _id + 1); });
     }
 }
 
@@ -41,7 +60,7 @@ int main()
 
     asio::steady_timer timer(io_context, asio::chrono::seconds(1));
 
-    asio::post(io_context, [&io_context] { accept_handle(io_context, 0); });
+    asio::post(io_context, [&] { accept_handle(io_context, 0); });
 
     io_context.run();
 

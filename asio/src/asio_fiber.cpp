@@ -1,119 +1,106 @@
-﻿#include <boost/asio.hpp>
-#include <boost/system.hpp> // boost::system::error_code
-#include <spdlog/spdlog.h>
+﻿#include <memory>
 #include <string>
-#define BOOST_ALL_NO_LIB 1
-#include <boost/context/fiber.hpp>
-#include <queue>
 #include <unordered_map>
-#include <chrono>
 
-namespace context = boost::context;
-using fiber_t = context::fiber;
+#include <spdlog/spdlog.h>
+#define BOOST_ALL_NO_LIB 1
+#include <boost/asio.hpp>
+#include <boost/fiber/all.hpp>
+
+#include "on_exit.hpp"
 
 namespace asio = boost::asio;
-using error_code_t = boost::system::error_code;
 
-struct OnExit
+namespace fibers = boost::fibers;
+
+namespace type
 {
-    using fn_t = std::function<void()>;
-    OnExit(fn_t _fn) : fn(_fn)
-    {
-    }
-    ~OnExit()
-    {
-        fn();
-    }
-    fn_t fn;
-};
+    using fibers::buffered_channel;
+    using fibers::channel_op_status;
+    using fibers::fiber;
+    using id = int;
+}
 
-void handle(asio::io_context& _io_context, bool _manage_on_sub, int _count)
+namespace t = type;
+
+void join(t::fiber& _fiber)
 {
-    std::unique_ptr<fiber_t> main;
-
-    // 協程容器
-    std::unordered_map<int, std::unique_ptr<fiber_t>> fiber_cont;
-
-    // 待喚醒協程隊列。
-    std::queue<int> awake_cont;
-
-    auto create_fiber = [&_io_context, &awake_cont, &main](int id)
+    if (_fiber.joinable())
     {
-        return [&_io_context, &awake_cont, id, &main](fiber_t&& _sink)
+        _fiber.join();
+    }
+}
+
+void handle(asio::io_context& _io_context)
+{
+    std::unique_ptr<t::fiber> main;
+
+    std::unordered_map<t::id, std::unique_ptr<t::fiber>> fiber_cont;
+
+    t::buffered_channel<t::id> chan{2};
+
+    ON_EXIT(
+        [&]
         {
-            auto cb = [&awake_cont, id] { awake_cont.push(id); };
-            OnExit onExit(cb);
-            std::vector<int> data{1, 2, 3};
-            for (auto& i : data)
+            if (main)
+            {
+                join(*main);
+            }
+
+            for (auto& i : fiber_cont)
+            {
+                join(*(i.second));
+            }
+        });
+
+    auto create_fiber = [&](t::id id)
+    {
+        return [&, id]
+        {
+            ON_EXIT([&, id] { chan.push(id); });
+            std::vector<std::string> vec{
+                "a",
+                "b",
+                "c",
+            };
+            for (auto& i : vec)
             {
                 SPDLOG_INFO("id: {} value: {}", id, i);
-                asio::post(_io_context, cb);
-                _sink = std::move(_sink).resume();
+                bool finished = false;
+                asio::post(_io_context, [&] { finished = true; });
+                while (!finished)
+                {
+                    boost::this_fiber::yield();
+                }
             }
-            return std::move(_sink);
         };
     };
 
-    for (auto id = 0; id < _count; id++)
-    {
-        fiber_cont[id] = std::make_unique<fiber_t>(create_fiber(id));
-        // 和continuation不一樣，創建後不會自動執行。
-        auto& fiber = *fiber_cont[id];
-        fiber = std::move(fiber).resume();
-    }
-
-    auto main_fiber = [&]
-    {
-        while (!fiber_cont.empty())
+    main = std::make_unique<t::fiber>(
+        [&]
         {
-            // 實際執行異步操作
-            _io_context.run();
-
-            if (!awake_cont.empty())
+            for (auto id = 0; id != 3; ++id)
             {
-                SPDLOG_DEBUG("awake_cont size: {}", awake_cont.size());
+                fiber_cont[id] = std::make_unique<t::fiber>(create_fiber(id));
             }
 
-            // 簡單的協程調度，按awake_cont中先進先出的順序喚醒協程。
-            while (!awake_cont.empty())
+            while (!fiber_cont.empty())
             {
-                auto i = awake_cont.front();
-                awake_cont.pop();
-                SPDLOG_DEBUG("awake id: {}", i);
-                auto iter = fiber_cont.find(i);
-                if (iter != fiber_cont.end())
+                _io_context.run();
+                int id = -1;
+                if (chan.try_pop(id) == t::channel_op_status::success)
                 {
-                    auto& fiber = *(iter->second);
-                    if (!fiber)
+                    auto iter = fiber_cont.find(id);
+                    if (iter != fiber_cont.end())
                     {
+                        join(*(iter->second));
                         fiber_cont.erase(iter);
-                        SPDLOG_DEBUG("child size: {}", fiber_cont.size());
-                        continue;
+                        SPDLOG_INFO("fiber_cont: {}", fiber_cont.size());
                     }
-                    fiber = std::move(fiber).resume();
                 }
+                boost::this_fiber::yield();
             }
-        }
-    };
-
-    if (_manage_on_sub)
-    {
-        SPDLOG_INFO("create main");
-        main = std::make_unique<fiber_t>(
-            [&main_fiber](fiber_t&& _sink)
-            {
-                SPDLOG_INFO("enter main");
-                main_fiber();
-                return std::move(_sink);
-            });
-
-        SPDLOG_INFO("resume main");
-        *main = std::move(*main).resume();
-    }
-    else
-    {
-        main_fiber();
-    }
+        });
 }
 
 int main()
@@ -122,13 +109,8 @@ int main()
     spdlog::set_pattern(log_format);
 
     asio::io_context io_context;
-    namespace chrono = std::chrono;
 
-    auto start = chrono::steady_clock::now();
-    handle(io_context, true, 3);
-    auto end = chrono::steady_clock::now();
-    auto duration = chrono::duration_cast<chrono::milliseconds>(end - start);
-    SPDLOG_INFO("used times: {}", duration.count());
+    handle(io_context);
 
     return 0;
 }

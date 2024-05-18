@@ -1,7 +1,7 @@
 ﻿#include <boost/asio.hpp>
-#include <boost/system.hpp> // boost::system::error_code
-#include <spdlog/spdlog.h>
 #include <string>
+
+#include <spdlog/spdlog.h>
 
 // clang-format off
 #define CORO_BEGIN(_state) \
@@ -21,18 +21,36 @@
 // clang-format on
 
 namespace asio = boost::asio;
-using error_code_t = boost::system::error_code;
 
-void handle(asio::io_context& _io_context, int _id, std::shared_ptr<std::vector<int>> _data, std::size_t _offset,
-            std::shared_ptr<int> _state)
+namespace type
 {
-    CORO_BEGIN(*_state);
-    while (_offset < _data->size())
+    using id = int;
+}
+
+namespace t = type;
+
+struct Data
+{
+    std::vector<std::string> value;
+    std::size_t offset = 0;
+    t::id id;
+    int state = 0;
+};
+
+void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data)
+{
+    auto& offset = _data->offset;
+    auto& value = _data->value;
+    auto& id = _data->id;
+    auto& state = _data->state;
+
+    CORO_BEGIN(state);
+    while (offset < value.size())
     {
-        SPDLOG_INFO("id: {} value: {}", _id, (*_data)[_offset]);
-        asio::post(_io_context, [&_io_context, _id, _data, _offset, _state]
-                   { handle(_io_context, _id, _data, _offset + 1, _state); });
-        CORO_YIELD(*_state);
+        SPDLOG_INFO("id: {} value: {}", id, value[offset]);
+        offset += 1;
+        asio::post(_io_context, [&, _data] { handle(_io_context, _data); });
+        CORO_YIELD(state);
     }
     CORO_END();
 }
@@ -42,19 +60,18 @@ void accept_handle(asio::io_context& _io_context, int& _id, int& _state)
     CORO_BEGIN(_state);
     while (_id < 3)
     {
-        asio::post(_io_context, [&_io_context, &_id, &_state] { accept_handle(_io_context, _id, _state); });
+        asio::post(_io_context, [&] { accept_handle(_io_context, _id, _state); });
         CORO_YIELD(_state);
 
-        [&_io_context, _id]
+        [&, _id]
         {
-            auto _data = std::make_shared<std::vector<int>>();
-            _data->push_back(1);
-            _data->push_back(2);
-            _data->push_back(3);
+            auto data = std::make_shared<Data>();
+            data->value.push_back("a");
+            data->value.push_back("b");
+            data->value.push_back("c");
+            data->id = _id;
 
-            auto state = std::make_shared<int>(0);
-
-            asio::post(_io_context, [&_io_context, _id, _data, state] { handle(_io_context, _id, _data, 0, state); });
+            asio::post(_io_context, [&, data] { handle(_io_context, data); });
         }();
 
         _id++;

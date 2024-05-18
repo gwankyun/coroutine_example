@@ -1,11 +1,12 @@
-﻿#include <queue>
-#include <unordered_map>
+﻿#include <chrono>
+#include <queue>
 #include <string>
+#include <unordered_map>
 
 #include <spdlog/spdlog.h>
 #define BOOST_ALL_NO_LIB 1
 #include <boost/asio.hpp>
-#include <boost/context/continuation.hpp>
+#include <boost/context/fiber.hpp>
 
 #include "on_exit.hpp"
 
@@ -13,7 +14,7 @@ namespace context = boost::context;
 
 namespace type
 {
-    using continuation = context::continuation;
+    using context::fiber;
     using id = int;
 }
 
@@ -21,19 +22,19 @@ namespace t = type;
 
 namespace asio = boost::asio;
 
-void handle(asio::io_context& _io_context, bool _manage_on_sub)
+void handle(asio::io_context& _io_context, bool _manage_on_sub, int _count)
 {
-    std::unique_ptr<t::continuation> main;
+    std::unique_ptr<t::fiber> main;
 
     // 協程容器
-    std::unordered_map<t::id, std::unique_ptr<t::continuation>> continuation_cont;
+    std::unordered_map<t::id, std::unique_ptr<t::fiber>> fiber_cont;
 
     // 待喚醒協程隊列。
     std::queue<t::id> awake_cont;
 
-    auto create_continuation = [&](t::id id)
+    auto create_fiber = [&](t::id id)
     {
-        auto continuation = [&, id](t::continuation&& _sink)
+        return [&, id](t::fiber&& _sink)
         {
             auto cb = [&, id] { awake_cont.push(id); };
             ON_EXIT(cb);
@@ -46,21 +47,23 @@ void handle(asio::io_context& _io_context, bool _manage_on_sub)
             {
                 SPDLOG_INFO("id: {} value: {}", id, i);
                 asio::post(_io_context, cb);
-                _sink = _sink.resume();
+                _sink = std::move(_sink).resume();
             }
             return std::move(_sink);
         };
-        return context::callcc(continuation);
     };
 
-    auto main_continuation = [&]
+    for (auto id = 0; id < _count; id++)
     {
-        for (auto id = 0; id < 3; id++)
-        {
-            continuation_cont[id] = std::make_unique<t::continuation>(create_continuation(id));
-        }
+        fiber_cont[id] = std::make_unique<t::fiber>(create_fiber(id));
+        // 和continuation不一樣，創建後不會自動執行。
+        auto& fiber = *fiber_cont[id];
+        fiber = std::move(fiber).resume();
+    }
 
-        while (!continuation_cont.empty())
+    auto main_fiber = [&]
+    {
+        while (!fiber_cont.empty())
         {
             // 實際執行異步操作
             _io_context.run();
@@ -76,17 +79,17 @@ void handle(asio::io_context& _io_context, bool _manage_on_sub)
                 auto i = awake_cont.front();
                 awake_cont.pop();
                 SPDLOG_DEBUG("awake id: {}", i);
-                auto iter = continuation_cont.find(i);
-                if (iter != continuation_cont.end())
+                auto iter = fiber_cont.find(i);
+                if (iter != fiber_cont.end())
                 {
-                    auto& continuation = *(iter->second);
-                    if (!continuation)
+                    auto& fiber = *(iter->second);
+                    if (!fiber)
                     {
-                        continuation_cont.erase(iter);
-                        SPDLOG_DEBUG("child size: {}", continuation_cont.size());
+                        fiber_cont.erase(iter);
+                        SPDLOG_DEBUG("child size: {}", fiber_cont.size());
                         continue;
                     }
-                    continuation = continuation.resume();
+                    fiber = std::move(fiber).resume();
                 }
             }
         }
@@ -95,18 +98,20 @@ void handle(asio::io_context& _io_context, bool _manage_on_sub)
     if (_manage_on_sub)
     {
         SPDLOG_INFO("create main");
-        SPDLOG_INFO("resume main");
-        main = std::make_unique<t::continuation>(context::callcc(
-            [&](t::continuation&& _sink)
+        main = std::make_unique<t::fiber>(
+            [&](t::fiber&& _sink)
             {
                 SPDLOG_INFO("enter main");
-                main_continuation();
+                main_fiber();
                 return std::move(_sink);
-            }));
+            });
+
+        SPDLOG_INFO("resume main");
+        *main = std::move(*main).resume();
     }
     else
     {
-        main_continuation();
+        main_fiber();
     }
 }
 
@@ -116,8 +121,13 @@ int main()
     spdlog::set_pattern(log_format);
 
     asio::io_context io_context;
+    namespace chrono = std::chrono;
 
-    handle(io_context, true);
+    auto start = chrono::steady_clock::now();
+    handle(io_context, true, 3);
+    auto end = chrono::steady_clock::now();
+    auto duration = chrono::duration_cast<chrono::milliseconds>(end - start);
+    SPDLOG_INFO("used times: {}", duration.count());
 
     return 0;
 }
