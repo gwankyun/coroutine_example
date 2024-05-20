@@ -12,6 +12,7 @@
 namespace asio = boost::asio;
 
 namespace fibers = boost::fibers;
+namespace this_fiber = boost::this_fiber;
 
 namespace type
 {
@@ -33,9 +34,11 @@ void join(t::fiber& _fiber)
 
 void handle(asio::io_context& _io_context)
 {
-    std::unique_ptr<t::fiber> main;
+    using fiber_ptr = std::unique_ptr<t::fiber>;
 
-    std::unordered_map<t::id, std::unique_ptr<t::fiber>> fiber_cont;
+    fiber_ptr main;
+
+    std::unordered_map<t::id, fiber_ptr> fiber_cont;
 
     t::buffered_channel<t::id> chan{2};
 
@@ -70,7 +73,7 @@ void handle(asio::io_context& _io_context)
                 asio::post(_io_context, [&] { finished = true; });
                 while (!finished)
                 {
-                    boost::this_fiber::yield();
+                    this_fiber::yield();
                 }
             }
         };
@@ -87,18 +90,19 @@ void handle(asio::io_context& _io_context)
             while (!fiber_cont.empty())
             {
                 _io_context.run();
-                int id = -1;
+                t::id id = -1;
                 if (chan.try_pop(id) == t::channel_op_status::success)
                 {
-                    auto iter = fiber_cont.find(id);
-                    if (iter != fiber_cont.end())
+                    auto& cont = fiber_cont;
+                    auto iter = cont.find(id);
+                    if (iter != cont.end())
                     {
                         join(*(iter->second));
-                        fiber_cont.erase(iter);
-                        SPDLOG_INFO("fiber_cont: {}", fiber_cont.size());
+                        cont.erase(iter);
+                        SPDLOG_INFO("fiber_cont: {}", cont.size());
                     }
                 }
-                boost::this_fiber::yield();
+                this_fiber::yield();
             }
         });
 }

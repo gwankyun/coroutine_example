@@ -80,14 +80,15 @@ void handle(asio::io_context& _io_context, int _count)
             auto i = awake_cont.front();
             awake_cont.pop();
             SPDLOG_DEBUG("awake id: {}", i);
-            auto iter = coro_cont.find(i);
-            if (iter != coro_cont.end())
+            auto& cont = coro_cont;
+            auto iter = cont.find(i);
+            if (iter != cont.end())
             {
                 auto& resume = *(iter->second);
                 if (!resume)
                 {
-                    coro_cont.erase(iter);
-                    SPDLOG_DEBUG("child size: {}", coro_cont.size());
+                    cont.erase(iter);
+                    SPDLOG_DEBUG("child size: {}", cont.size());
                     continue;
                 }
                 resume();

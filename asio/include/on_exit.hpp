@@ -3,15 +3,15 @@
 
 struct OnExit
 {
-    using fn_t = std::function<void()>;
-    OnExit(fn_t _fn) : fn(_fn)
+    using Fn = std::function<void()>;
+    OnExit(Fn _fn) : fn(_fn)
     {
     }
     ~OnExit()
     {
         fn();
     }
-    fn_t fn;
+    Fn fn;
 };
 
 // clang-format off
@@ -24,6 +24,6 @@ struct OnExit
 #endif
 
 #ifndef ON_EXIT
-#  define ON_EXIT(...) OnExit CAT(unique_, __LINE__)(##__VA_ARGS__)
+#  define ON_EXIT(...) OnExit CAT(on_exit_, __LINE__)(##__VA_ARGS__)
 #endif
 // clang-format on

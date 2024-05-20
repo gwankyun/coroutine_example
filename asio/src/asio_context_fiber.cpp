@@ -22,12 +22,19 @@ namespace t = type;
 
 namespace asio = boost::asio;
 
+void resume(t::fiber& _fiber)
+{
+    _fiber = std::move(_fiber).resume();
+}
+
 void handle(asio::io_context& _io_context, bool _manage_on_sub, int _count)
 {
-    std::unique_ptr<t::fiber> main;
+    using fiber_ptr = std::unique_ptr<t::fiber>;
+
+    fiber_ptr main;
 
     // 協程容器
-    std::unordered_map<t::id, std::unique_ptr<t::fiber>> fiber_cont;
+    std::unordered_map<t::id, fiber_ptr> fiber_cont;
 
     // 待喚醒協程隊列。
     std::queue<t::id> awake_cont;
@@ -47,7 +54,7 @@ void handle(asio::io_context& _io_context, bool _manage_on_sub, int _count)
             {
                 SPDLOG_INFO("id: {} value: {}", id, i);
                 asio::post(_io_context, cb);
-                _sink = std::move(_sink).resume();
+                resume(_sink);
             }
             return std::move(_sink);
         };
@@ -58,7 +65,7 @@ void handle(asio::io_context& _io_context, bool _manage_on_sub, int _count)
         fiber_cont[id] = std::make_unique<t::fiber>(create_fiber(id));
         // 和continuation不一樣，創建後不會自動執行。
         auto& fiber = *fiber_cont[id];
-        fiber = std::move(fiber).resume();
+        resume(fiber);
     }
 
     auto main_fiber = [&]
@@ -79,17 +86,18 @@ void handle(asio::io_context& _io_context, bool _manage_on_sub, int _count)
                 auto i = awake_cont.front();
                 awake_cont.pop();
                 SPDLOG_DEBUG("awake id: {}", i);
-                auto iter = fiber_cont.find(i);
-                if (iter != fiber_cont.end())
+                auto& cont = fiber_cont;
+                auto iter = cont.find(i);
+                if (iter != cont.end())
                 {
                     auto& fiber = *(iter->second);
                     if (!fiber)
                     {
-                        fiber_cont.erase(iter);
-                        SPDLOG_DEBUG("child size: {}", fiber_cont.size());
+                        cont.erase(iter);
+                        SPDLOG_DEBUG("child size: {}", cont.size());
                         continue;
                     }
-                    fiber = std::move(fiber).resume();
+                    resume(fiber);
                 }
             }
         }
@@ -107,7 +115,7 @@ void handle(asio::io_context& _io_context, bool _manage_on_sub, int _count)
             });
 
         SPDLOG_INFO("resume main");
-        *main = std::move(*main).resume();
+        resume(*main);
     }
     else
     {

@@ -21,12 +21,19 @@ namespace t = type;
 
 namespace asio = boost::asio;
 
+void resume(t::continuation& _continuation)
+{
+    _continuation = _continuation.resume();
+}
+
 void handle(asio::io_context& _io_context, bool _manage_on_sub)
 {
-    std::unique_ptr<t::continuation> main;
+    using continuation_ptr = std::unique_ptr<t::continuation>;
+
+    continuation_ptr main;
 
     // 協程容器
-    std::unordered_map<t::id, std::unique_ptr<t::continuation>> continuation_cont;
+    std::unordered_map<t::id, continuation_ptr> continuation_cont;
 
     // 待喚醒協程隊列。
     std::queue<t::id> awake_cont;
@@ -46,7 +53,7 @@ void handle(asio::io_context& _io_context, bool _manage_on_sub)
             {
                 SPDLOG_INFO("id: {} value: {}", id, i);
                 asio::post(_io_context, cb);
-                _sink = _sink.resume();
+                resume(_sink);
             }
             return std::move(_sink);
         };
@@ -76,17 +83,18 @@ void handle(asio::io_context& _io_context, bool _manage_on_sub)
                 auto i = awake_cont.front();
                 awake_cont.pop();
                 SPDLOG_DEBUG("awake id: {}", i);
-                auto iter = continuation_cont.find(i);
-                if (iter != continuation_cont.end())
+                auto& cont = continuation_cont;
+                auto iter = cont.find(i);
+                if (iter != cont.end())
                 {
                     auto& continuation = *(iter->second);
                     if (!continuation)
                     {
-                        continuation_cont.erase(iter);
-                        SPDLOG_DEBUG("child size: {}", continuation_cont.size());
+                        cont.erase(iter);
+                        SPDLOG_DEBUG("child size: {}", cont.size());
                         continue;
                     }
-                    continuation = continuation.resume();
+                    resume(continuation);
                 }
             }
         }
