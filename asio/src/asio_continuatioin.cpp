@@ -8,6 +8,7 @@
 #include <boost/context/continuation.hpp>
 
 #include "on_exit.hpp"
+#include "time.hpp"
 
 namespace context = boost::context;
 
@@ -15,18 +16,23 @@ namespace type
 {
     using continuation = context::continuation;
     using id = int;
-}
+} // namespace type
 
 namespace t = type;
 
 namespace asio = boost::asio;
 
-void resume(t::continuation& _continuation)
+namespace func
 {
-    _continuation = _continuation.resume();
-}
+    void resume(t::continuation& _continuation)
+    {
+        _continuation = _continuation.resume();
+    }
+} // namespace func
 
-void handle(asio::io_context& _io_context, bool _manage_on_sub)
+namespace f = func;
+
+void handle(asio::io_context& _io_context, int _count, bool _manage_on_sub)
 {
     using continuation_ptr = std::unique_ptr<t::continuation>;
 
@@ -53,7 +59,7 @@ void handle(asio::io_context& _io_context, bool _manage_on_sub)
             {
                 SPDLOG_INFO("id: {} value: {}", id, i);
                 asio::post(_io_context, cb);
-                resume(_sink);
+                f::resume(_sink);
             }
             return std::move(_sink);
         };
@@ -62,7 +68,7 @@ void handle(asio::io_context& _io_context, bool _manage_on_sub)
 
     auto main_continuation = [&]
     {
-        for (auto id = 0; id < 3; id++)
+        for (auto id = 0; id < _count; id++)
         {
             continuation_cont[id] = std::make_unique<t::continuation>(create_continuation(id));
         }
@@ -94,7 +100,7 @@ void handle(asio::io_context& _io_context, bool _manage_on_sub)
                         SPDLOG_DEBUG("child size: {}", cont.size());
                         continue;
                     }
-                    resume(continuation);
+                    f::resume(continuation);
                 }
             }
         }
@@ -125,7 +131,9 @@ int main()
 
     asio::io_context io_context;
 
-    handle(io_context, true);
+    auto count = common::time_count([&] { handle(io_context, 3, true); });
+
+    SPDLOG_INFO("used times: {}", count);
 
     return 0;
 }

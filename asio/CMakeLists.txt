@@ -1,5 +1,9 @@
 ﻿set(asio_common asio_common)
 add_library(${asio_common} INTERFACE)
+target_sources(${asio_common} INTERFACE
+  include/on_exit.hpp
+  include/time.hpp
+)
 target_link_libraries(${asio_common} INTERFACE
   Boost::headers
   spdlog::spdlog

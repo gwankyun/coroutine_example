@@ -5,6 +5,8 @@
 #include <boost/asio.hpp>
 #include <spdlog/spdlog.h>
 
+#include "time.hpp"
+
 namespace asio = boost::asio;
 
 namespace type
@@ -23,9 +25,10 @@ struct Data
 
 void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data)
 {
-    auto& offset = _data->offset;
-    auto& value = _data->value;
-    auto& id = _data->id;
+    auto& data = *_data;
+    auto& offset = data.offset;
+    auto& value = data.value;
+    auto& id = data.id;
 
     if (offset < value.size())
     {
@@ -35,9 +38,9 @@ void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data)
     }
 }
 
-void accept_handle(asio::io_context& _io_context, int _id)
+void accept_handle(asio::io_context& _io_context, int _count, int _id)
 {
-    if (_id < 3)
+    if (_id < _count)
     {
         auto data = std::make_shared<Data>();
         data->value.push_back("a");
@@ -47,7 +50,7 @@ void accept_handle(asio::io_context& _io_context, int _id)
 
         asio::post(_io_context, [&, data] { handle(_io_context, data); });
 
-        asio::post(_io_context, [&, _id] { accept_handle(_io_context, _id + 1); });
+        asio::post(_io_context, [&, _count, _id] { accept_handle(_io_context, _count, _id + 1); });
     }
 }
 
@@ -58,11 +61,14 @@ int main()
 
     asio::io_context io_context;
 
-    asio::steady_timer timer(io_context, asio::chrono::seconds(1));
+    auto count = common::time_count(
+        [&]
+        {
+            asio::post(io_context, [&] { accept_handle(io_context, 3, 0); });
+            io_context.run();
+        });
 
-    asio::post(io_context, [&] { accept_handle(io_context, 0); });
-
-    io_context.run();
+    SPDLOG_INFO("used times: {}", count);
 
     return 0;
 }

@@ -8,6 +8,7 @@
 #include <boost/fiber/all.hpp>
 
 #include "on_exit.hpp"
+#include "time.hpp"
 
 namespace asio = boost::asio;
 
@@ -20,19 +21,24 @@ namespace type
     using fibers::channel_op_status;
     using fibers::fiber;
     using id = int;
-}
+} // namespace type
 
 namespace t = type;
 
-void join(t::fiber& _fiber)
+namespace func
 {
-    if (_fiber.joinable())
+    void join(t::fiber& _fiber)
     {
-        _fiber.join();
+        if (_fiber.joinable())
+        {
+            _fiber.join();
+        }
     }
-}
+} // namespace func
 
-void handle(asio::io_context& _io_context)
+namespace f = func;
+
+void handle(asio::io_context& _io_context, int _count)
 {
     using fiber_ptr = std::unique_ptr<t::fiber>;
 
@@ -47,12 +53,12 @@ void handle(asio::io_context& _io_context)
         {
             if (main)
             {
-                join(*main);
+                f::join(*main);
             }
 
             for (auto& i : fiber_cont)
             {
-                join(*(i.second));
+                f::join(*(i.second));
             }
         });
 
@@ -73,6 +79,7 @@ void handle(asio::io_context& _io_context)
                 asio::post(_io_context, [&] { finished = true; });
                 while (!finished)
                 {
+                    SPDLOG_INFO("id: {} yield", id);
                     this_fiber::yield();
                 }
             }
@@ -82,7 +89,7 @@ void handle(asio::io_context& _io_context)
     main = std::make_unique<t::fiber>(
         [&]
         {
-            for (auto id = 0; id != 3; ++id)
+            for (auto id = 0; id != _count; ++id)
             {
                 fiber_cont[id] = std::make_unique<t::fiber>(create_fiber(id));
             }
@@ -97,7 +104,7 @@ void handle(asio::io_context& _io_context)
                     auto iter = cont.find(id);
                     if (iter != cont.end())
                     {
-                        join(*(iter->second));
+                        f::join(*(iter->second));
                         cont.erase(iter);
                         SPDLOG_INFO("fiber_cont: {}", cont.size());
                     }
@@ -114,7 +121,9 @@ int main()
 
     asio::io_context io_context;
 
-    handle(io_context);
+    auto count = common::time_count([&] { handle(io_context, 3); });
+
+    SPDLOG_INFO("used times: {}", count);
 
     return 0;
 }

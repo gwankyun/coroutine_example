@@ -3,6 +3,8 @@
 
 #include <spdlog/spdlog.h>
 
+#include "time.hpp"
+
 // clang-format off
 #define CORO_BEGIN(_state) \
     switch (_state) \
@@ -39,10 +41,11 @@ struct Data
 
 void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data)
 {
-    auto& offset = _data->offset;
-    auto& value = _data->value;
-    auto& id = _data->id;
-    auto& state = _data->state;
+    auto& data = *_data;
+    auto& offset = data.offset;
+    auto& value = data.value;
+    auto& id = data.id;
+    auto& state = data.state;
 
     CORO_BEGIN(state);
     while (offset < value.size())
@@ -55,12 +58,12 @@ void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data)
     CORO_END();
 }
 
-void accept_handle(asio::io_context& _io_context, int& _id, int& _state)
+void accept_handle(asio::io_context& _io_context, int _count, int& _id, int& _state)
 {
     CORO_BEGIN(_state);
-    while (_id < 3)
+    while (_id < _count)
     {
-        asio::post(_io_context, [&] { accept_handle(_io_context, _id, _state); });
+        asio::post(_io_context, [&, _count] { accept_handle(_io_context, _count, _id, _state); });
         CORO_YIELD(_state);
 
         [&, _id]
@@ -86,19 +89,17 @@ int main()
 
     asio::io_context io_context;
 
-    asio::steady_timer timer(io_context, asio::chrono::seconds(1));
+    auto count = common::time_count(
+        [&]
+        {
+            int id = 0;
+            int state = 0;
+            accept_handle(io_context, 3, id, state);
 
-    auto start = std::chrono::steady_clock::now();
+            io_context.run();
+        });
 
-    int id = 0;
-    int state = 0;
-    accept_handle(io_context, id, state);
-
-    io_context.run();
-
-    auto end = std::chrono::steady_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    SPDLOG_INFO("used times: {}", duration.count());
+    SPDLOG_INFO("used times: {}", count);
 
     return 0;
 }

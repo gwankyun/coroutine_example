@@ -11,6 +11,7 @@
 #include <boost/system.hpp> // boost::system::error_code
 
 #include "on_exit.hpp"
+#include "time.hpp"
 
 namespace asio = boost::asio;
 
@@ -27,7 +28,7 @@ namespace type
     using pull = pull_type<>;
     using push = push_type<>;
     using id = int;
-}
+} // namespace type
 
 namespace t = type;
 
@@ -104,11 +105,9 @@ int main()
 
     asio::io_context io_context;
 
-    auto start = std::chrono::steady_clock::now();
-    handle(io_context, 3);
-    auto end = std::chrono::steady_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    SPDLOG_INFO("used times: {}", duration.count());
+    auto count = common::time_count([&] { handle(io_context, 3); });
+
+    SPDLOG_INFO("used times: {}", count);
 
     return 0;
 }

@@ -1,18 +1,21 @@
 ﻿#pragma once
 #include <functional>
 
-struct OnExit
+namespace common
 {
-    using Fn = std::function<void()>;
-    OnExit(Fn _fn) : fn(_fn)
+    struct OnExit
     {
-    }
-    ~OnExit()
-    {
-        fn();
-    }
-    Fn fn;
-};
+        using Fn = std::function<void()>;
+        OnExit(Fn _fn) : fn(_fn)
+        {
+        }
+        ~OnExit()
+        {
+            fn();
+        }
+        Fn fn;
+    };
+} // namespace common
 
 // clang-format off
 #ifndef CAT_IMPL
@@ -24,6 +27,6 @@ struct OnExit
 #endif
 
 #ifndef ON_EXIT
-#  define ON_EXIT(...) OnExit CAT(on_exit_, __LINE__)(##__VA_ARGS__)
+#  define ON_EXIT(...) common::OnExit CAT(on_exit_, __LINE__)(##__VA_ARGS__)
 #endif
 // clang-format on
