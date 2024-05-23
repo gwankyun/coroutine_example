@@ -7,8 +7,8 @@
 #include <boost/asio.hpp>
 #include <boost/fiber/all.hpp>
 
-#include "on_exit.hpp"
-#include "time.hpp"
+#include "on_exit.h"
+#include "time_count.h"
 
 namespace asio = boost::asio;
 

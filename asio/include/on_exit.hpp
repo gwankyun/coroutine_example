@@ -1,11 +1,19 @@
 ﻿#pragma once
 #include <functional>
 
+// clang-format off
+#ifndef ON_EXIT_HEADR_ONLY
+#  define ON_EXIT_HEADR_ONLY 1
+#endif
+// clang-format on
+
 namespace common
 {
     struct OnExit
     {
         using Fn = std::function<void()>;
+        Fn fn;
+#if ON_EXIT_HEADR_ONLY
         OnExit(Fn _fn) : fn(_fn)
         {
         }
@@ -13,7 +21,10 @@ namespace common
         {
             fn();
         }
-        Fn fn;
+#else
+        OnExit(Fn _fn);
+        ~OnExit();
+#endif
     };
 } // namespace common
 

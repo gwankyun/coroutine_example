@@ -5,7 +5,7 @@
 #include <boost/asio.hpp>
 #include <spdlog/spdlog.h>
 
-#include "time.hpp"
+#include "time_count.h"
 
 namespace asio = boost::asio;
 
@@ -43,9 +43,7 @@ void accept_handle(asio::io_context& _io_context, int _count, int _id)
     if (_id < _count)
     {
         auto data = std::make_shared<Data>();
-        data->value.push_back("a");
-        data->value.push_back("b");
-        data->value.push_back("c");
+        data->value = {"a", "b", "c"};
         data->id = _id;
 
         asio::post(_io_context, [&, data] { handle(_io_context, data); });

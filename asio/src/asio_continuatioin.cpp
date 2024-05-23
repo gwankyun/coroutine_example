@@ -7,8 +7,8 @@
 #include <boost/asio.hpp>
 #include <boost/context/continuation.hpp>
 
-#include "on_exit.hpp"
-#include "time.hpp"
+#include "on_exit.h"
+#include "time_count.h"
 
 namespace context = boost::context;
 

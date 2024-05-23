@@ -1,12 +1,29 @@
-﻿set(asio_common asio_common)
-add_library(${asio_common} INTERFACE)
-target_sources(${asio_common} INTERFACE
-  include/on_exit.hpp
-  include/time.hpp
+﻿set(on_exit on_exit)
+add_library(${on_exit})
+target_sources(${on_exit}
+  PUBLIC
+    include/on_exit.h
+  PRIVATE
+    include/on_exit.hpp
+    src/on_exit.cpp
 )
+
+set(time_count time_count)
+add_library(${time_count})
+target_sources(${time_count}
+  PUBLIC
+    include/time_count.h
+  PRIVATE
+    include/time_count.hpp
+    src/time_count.cpp
+)
+
+set(asio_common asio_common)
+add_library(${asio_common} INTERFACE)
 target_link_libraries(${asio_common} INTERFACE
   Boost::headers
   spdlog::spdlog
+  ${time_count}
 )
 target_include_directories(${asio_common} INTERFACE include)
 
@@ -15,6 +32,7 @@ add_library(${context_common} INTERFACE)
 target_link_libraries(${context_common} INTERFACE
   ${asio_common}
   Boost::context
+  ${on_exit}
 )
 
 set(asio_callback asio_callback)

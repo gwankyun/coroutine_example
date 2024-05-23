@@ -10,8 +10,8 @@
 #include <boost/coroutine2/all.hpp>
 #include <boost/system.hpp> // boost::system::error_code
 
-#include "on_exit.hpp"
-#include "time.hpp"
+#include "on_exit.h"
+#include "time_count.h"
 
 namespace asio = boost::asio;
 

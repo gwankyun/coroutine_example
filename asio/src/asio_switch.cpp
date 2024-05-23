@@ -3,7 +3,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include "time.hpp"
+#include "time_count.h"
 
 // clang-format off
 #define CORO_BEGIN(_state) \
@@ -27,6 +27,7 @@ namespace asio = boost::asio;
 namespace type
 {
     using id = int;
+    using state = int;
 }
 
 namespace t = type;
@@ -36,7 +37,7 @@ struct Data
     std::vector<std::string> value;
     std::size_t offset = 0;
     t::id id;
-    int state = 0;
+    t::state state = 0;
 };
 
 void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data)
@@ -58,7 +59,7 @@ void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data)
     CORO_END();
 }
 
-void accept_handle(asio::io_context& _io_context, int _count, int& _id, int& _state)
+void accept_handle(asio::io_context& _io_context, int _count, t::id& _id, t::state& _state)
 {
     CORO_BEGIN(_state);
     while (_id < _count)
@@ -66,12 +67,11 @@ void accept_handle(asio::io_context& _io_context, int _count, int& _id, int& _st
         asio::post(_io_context, [&, _count] { accept_handle(_io_context, _count, _id, _state); });
         CORO_YIELD(_state);
 
+        // switch內不能有局部變量。
         [&, _id]
         {
             auto data = std::make_shared<Data>();
-            data->value.push_back("a");
-            data->value.push_back("b");
-            data->value.push_back("c");
+            data->value = {"a", "b", "c"};
             data->id = _id;
 
             asio::post(_io_context, [&, data] { handle(_io_context, data); });
@@ -92,8 +92,8 @@ int main()
     auto count = common::time_count(
         [&]
         {
-            int id = 0;
-            int state = 0;
+            t::id id = 0;
+            t::state state = 0;
             accept_handle(io_context, 3, id, state);
 
             io_context.run();
