@@ -62,11 +62,11 @@ void handle(asio::io_context& _io_context, int _count)
             }
         });
 
-    auto create_fiber = [&](t::id id)
+    auto create_fiber = [&](t::id _id)
     {
-        return [&, id]
+        return [&, _id]
         {
-            ON_EXIT([&, id] { chan.push(id); });
+            ON_EXIT([&, _id] { chan.push(_id); });
             std::vector<std::string> vec{
                 "a",
                 "b",
@@ -74,14 +74,15 @@ void handle(asio::io_context& _io_context, int _count)
             };
             for (auto& i : vec)
             {
-                SPDLOG_INFO("id: {} value: {}", id, i);
                 bool finished = false;
                 asio::post(_io_context, [&] { finished = true; });
                 while (!finished)
                 {
-                    SPDLOG_INFO("id: {} yield", id);
+                    SPDLOG_INFO("id: {} yield", _id);
                     this_fiber::yield();
                 }
+
+                SPDLOG_INFO("id: {} value: {}", _id, i);
             }
         };
     };

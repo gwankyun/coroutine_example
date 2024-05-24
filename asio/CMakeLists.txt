@@ -89,3 +89,13 @@ target_link_libraries(${asio_fiber} PRIVATE
   ${context_common}
   Boost::fiber
 )
+
+set(asio_std_coroutine asio_std_coroutine)
+add_executable(${asio_std_coroutine})
+target_sources(${asio_std_coroutine} PRIVATE
+  src/asio_std_coroutine.cpp
+)
+target_link_libraries(${asio_std_coroutine} PRIVATE
+  ${asio_common}
+)
+target_compile_features(${asio_std_coroutine} PRIVATE cxx_std_20)

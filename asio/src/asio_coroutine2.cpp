@@ -34,17 +34,21 @@ namespace t = type;
 
 void handle(asio::io_context& _io_context, int _count)
 {
+    using pull_ptr = std::unique_ptr<t::pull>;
+
     // 協程容器
-    std::unordered_map<t::id, std::unique_ptr<t::pull>> coro_cont;
+    std::unordered_map<t::id, pull_ptr> coro_cont;
 
     // 待喚醒協程隊列。
     std::queue<t::id> awake_cont;
 
-    auto create_coro = [&](t::id id)
+    auto create_coro = [&](t::id _id)
     {
-        return [&, id](t::push& _yield)
+        return [&, _id](t::push& _yield)
         {
-            auto cb = [&, id] { awake_cont.push(id); };
+            // 添加到喚醒隊列
+            auto cb = [&, _id] { awake_cont.push(_id); };
+            // 最後喚醒一次，讓管理協程得知已結束
             ON_EXIT(cb);
             std::vector<std::string> vec{
                 "a",
@@ -53,9 +57,10 @@ void handle(asio::io_context& _io_context, int _count)
             };
             for (auto& i : vec)
             {
-                SPDLOG_INFO("id: {} value: {}", id, i);
                 asio::post(_io_context, cb);
                 _yield();
+
+                SPDLOG_INFO("id: {} value: {}", _id, i);
             }
         };
     };
@@ -86,7 +91,7 @@ void handle(asio::io_context& _io_context, int _count)
             if (iter != cont.end())
             {
                 auto& resume = *(iter->second);
-                if (!resume)
+                if (!resume) // 是否執行結束
                 {
                     cont.erase(iter);
                     SPDLOG_DEBUG("child size: {}", cont.size());

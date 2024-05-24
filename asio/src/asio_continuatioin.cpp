@@ -44,11 +44,11 @@ void handle(asio::io_context& _io_context, int _count, bool _manage_on_sub)
     // 待喚醒協程隊列。
     std::queue<t::id> awake_cont;
 
-    auto create_continuation = [&](t::id id)
+    auto create_continuation = [&](t::id _id)
     {
-        auto continuation = [&, id](t::continuation&& _sink)
+        auto continuation = [&, _id](t::continuation&& _sink)
         {
-            auto cb = [&, id] { awake_cont.push(id); };
+            auto cb = [&, _id] { awake_cont.push(_id); };
             ON_EXIT(cb);
             std::vector<std::string> vec{
                 "a",
@@ -57,9 +57,10 @@ void handle(asio::io_context& _io_context, int _count, bool _manage_on_sub)
             };
             for (auto& i : vec)
             {
-                SPDLOG_INFO("id: {} value: {}", id, i);
                 asio::post(_io_context, cb);
                 f::resume(_sink);
+
+                SPDLOG_INFO("id: {} value: {}", _id, i);
             }
             return std::move(_sink);
         };

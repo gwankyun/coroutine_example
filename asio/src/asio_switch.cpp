@@ -1,6 +1,6 @@
-﻿#include <boost/asio.hpp>
-#include <string>
+﻿#include <string>
 
+#include <boost/asio.hpp>
 #include <spdlog/spdlog.h>
 
 #include "time_count.h"
@@ -28,7 +28,7 @@ namespace type
 {
     using id = int;
     using state = int;
-}
+} // namespace type
 
 namespace t = type;
 
@@ -49,12 +49,12 @@ void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data)
     auto& state = data.state;
 
     CORO_BEGIN(state);
-    while (offset < value.size())
+    for (; offset < value.size(); offset++)
     {
-        SPDLOG_INFO("id: {} value: {}", id, value[offset]);
-        offset += 1;
         asio::post(_io_context, [&, _data] { handle(_io_context, _data); });
         CORO_YIELD(state);
+        
+        SPDLOG_INFO("id: {} value: {}", id, value[offset]);
     }
     CORO_END();
 }
@@ -62,7 +62,7 @@ void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data)
 void accept_handle(asio::io_context& _io_context, int _count, t::id& _id, t::state& _state)
 {
     CORO_BEGIN(_state);
-    while (_id < _count)
+    for (; _id < _count; _id++)
     {
         asio::post(_io_context, [&, _count] { accept_handle(_io_context, _count, _id, _state); });
         CORO_YIELD(_state);
@@ -76,8 +76,6 @@ void accept_handle(asio::io_context& _io_context, int _count, t::id& _id, t::sta
 
             asio::post(_io_context, [&, data] { handle(_io_context, data); });
         }();
-
-        _id++;
     }
     CORO_END();
 }
