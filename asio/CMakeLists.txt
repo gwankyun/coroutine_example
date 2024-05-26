@@ -18,6 +18,15 @@ target_sources(${time_count}
     src/time_count.cpp
 )
 
+set(asio_lite asio_lite)
+add_library(${asio_lite})
+target_sources(${asio_lite}
+  PUBLIC
+    include/asio_lite.h
+  PRIVATE
+    src/asio_lite.cpp
+)
+
 set(asio_common asio_common)
 add_library(${asio_common} INTERFACE)
 target_link_libraries(${asio_common} INTERFACE
@@ -97,5 +106,6 @@ target_sources(${asio_std_coroutine} PRIVATE
 )
 target_link_libraries(${asio_std_coroutine} PRIVATE
   ${asio_common}
+  ${asio_lite}
 )
 target_compile_features(${asio_std_coroutine} PRIVATE cxx_std_20)
