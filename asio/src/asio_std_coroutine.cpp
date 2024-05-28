@@ -1,16 +1,17 @@
 ﻿#include <concepts>  // std::invocable
 #include <coroutine> // std::coroutine_handle std::suspend_never
-#include <functional>
+#include <functional> // std::function
 #include <queue>
 #include <string>
 #include <vector>
 
-#include <cstdlib>
+#include <cstdlib> // std::exit
+
+#include <boost/asio.hpp>
+#include <spdlog/spdlog.h>
 
 #include "asio_lite.h"
 #include "time_count.h"
-#include <boost/asio.hpp>
-#include <spdlog/spdlog.h>
 
 namespace asio = boost::asio;
 // namespace asio = lite::asio;
@@ -77,7 +78,7 @@ namespace func
     /// @return 可供co_await的協程
     t::awaiter async_resume(t::coroutine& _coroutine, std::function<void()> _f)
     {
-        auto fn = [&_coroutine, _f](const t::coroutine& _coro)
+        auto fn = [&, _f](const t::coroutine& _coro)
         {
             _coroutine = _coro; // 把協程句柄傳出去
             _f();               // 業務回調
@@ -107,13 +108,13 @@ t::task handle(asio::io_context& _io_context, t::id _id)
     }
 }
 
-t::task accept_handle(asio::io_context& _io_context)
+t::task accept_handle(asio::io_context& _io_context, int _count)
 {
     t::coroutine coroutine; // 用於保存協程句柄
 
     auto resume = [&] { coroutine.resume(); };
 
-    for (auto i = 0; i < 3; i++)
+    for (auto i = 0; i < _count; i++)
     {
         co_await f::async_resume(coroutine, [&] { asio::post(_io_context, resume); });
 
@@ -131,7 +132,7 @@ int main()
     auto count = common::time_count(
         [&]
         {
-            accept_handle(io_context);
+            accept_handle(io_context, 3);
             io_context.run();
         });
 
