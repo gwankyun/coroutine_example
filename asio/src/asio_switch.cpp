@@ -1,6 +1,8 @@
 ﻿#include <string>
 
 #include <boost/asio.hpp>
+#include <catch2/../catch2/catch_session.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <spdlog/spdlog.h>
 
 #include "time_count.h"
@@ -40,7 +42,7 @@ struct Data
     t::state state = 0;
 };
 
-void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data)
+void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data, std::vector<std::string>& _output)
 {
     auto& data = *_data;
     auto& offset = data.offset;
@@ -51,20 +53,22 @@ void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data)
     CORO_BEGIN(state);
     for (; offset < value.size(); offset++)
     {
-        asio::post(_io_context, [&, _data] { handle(_io_context, _data); });
+        asio::post(_io_context, [&, _data] { handle(_io_context, _data, _output); });
         CORO_YIELD(state);
-        
+
         SPDLOG_INFO("id: {} value: {}", id, value[offset]);
+        _output[id] += value[offset];
     }
     CORO_END();
 }
 
-void accept_handle(asio::io_context& _io_context, int _count, t::id& _id, t::state& _state)
+void accept_handle(asio::io_context& _io_context, int _count, t::id& _id, t::state& _state,
+                   std::vector<std::string>& _output)
 {
     CORO_BEGIN(_state);
     for (; _id < _count; _id++)
     {
-        asio::post(_io_context, [&, _count] { accept_handle(_io_context, _count, _id, _state); });
+        asio::post(_io_context, [&, _count] { accept_handle(_io_context, _count, _id, _state, _output); });
         CORO_YIELD(_state);
 
         // switch內不能有局部變量。
@@ -74,30 +78,35 @@ void accept_handle(asio::io_context& _io_context, int _count, t::id& _id, t::sta
             data->value = {"a", "b", "c"};
             data->id = _id;
 
-            asio::post(_io_context, [&, data] { handle(_io_context, data); });
+            asio::post(_io_context, [&, data] { handle(_io_context, data, _output); });
         }();
     }
     CORO_END();
 }
 
-int main()
+TEST_CASE("asio_switch", "[switch]")
+{
+    std::vector<std::string> output(3);
+
+    asio::io_context io_context;
+
+    t::id id = 0;
+    t::state state = 0;
+    accept_handle(io_context, 3, id, state, output);
+
+    io_context.run();
+
+    for (auto& i : output)
+    {
+        REQUIRE(i == "abc");
+    }
+}
+
+int main(int argc, char* argv[])
 {
     std::string log_format{"[%C-%m-%d %T.%e] [%^%L%$] [%-20!!:%4#] %v"};
     spdlog::set_pattern(log_format);
 
-    asio::io_context io_context;
-
-    auto count = common::time_count(
-        [&]
-        {
-            t::id id = 0;
-            t::state state = 0;
-            accept_handle(io_context, 3, id, state);
-
-            io_context.run();
-        });
-
-    SPDLOG_INFO("used times: {}", count);
-
-    return 0;
+    auto result = Catch::Session().run(argc, argv);
+    return result;
 }

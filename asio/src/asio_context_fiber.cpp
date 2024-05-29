@@ -2,7 +2,10 @@
 #include <queue>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
+#include <catch2/../catch2/catch_session.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <spdlog/spdlog.h>
 #define BOOST_ALL_NO_LIB 1
 #include <boost/asio.hpp>
@@ -33,7 +36,7 @@ namespace func
 
 namespace f = func;
 
-void handle(asio::io_context& _io_context, int _count, bool _manage_on_sub)
+void handle(asio::io_context& _io_context, int _count, bool _manage_on_sub, std::vector<std::string>& _output)
 {
     using fiber_ptr = std::unique_ptr<t::fiber>;
 
@@ -62,6 +65,7 @@ void handle(asio::io_context& _io_context, int _count, bool _manage_on_sub)
                 f::resume(_sink);
 
                 SPDLOG_INFO("id: {} value: {}", _id, i);
+                _output[_id] += i;
             }
             return std::move(_sink);
         };
@@ -130,16 +134,25 @@ void handle(asio::io_context& _io_context, int _count, bool _manage_on_sub)
     }
 }
 
-int main()
+TEST_CASE("asio_context_fiber", "[context_fiber]")
+{
+    std::vector<std::string> output(3);
+
+    asio::io_context io_context;
+
+    handle(io_context, 3, true, output);
+
+    for (auto& i : output)
+    {
+        REQUIRE(i == "abc");
+    }
+}
+
+int main(int argc, char* argv[])
 {
     std::string log_format{"[%C-%m-%d %T.%e] [%^%L%$] [%-20!!:%4#] %v"};
     spdlog::set_pattern(log_format);
 
-    asio::io_context io_context;
-
-    auto count = common::time_count([&] { handle(io_context, 3, true); });
-
-    SPDLOG_INFO("used times: {}", count);
-
-    return 0;
+    auto result = Catch::Session().run(argc, argv);
+    return result;
 }

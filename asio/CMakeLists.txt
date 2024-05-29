@@ -1,4 +1,6 @@
-﻿set(on_exit on_exit)
+﻿set(asio asio)
+
+set(on_exit on_exit)
 add_library(${on_exit})
 target_sources(${on_exit}
   PUBLIC
@@ -7,6 +9,7 @@ target_sources(${on_exit}
     include/on_exit.hpp
     src/on_exit.cpp
 )
+set_target_properties(${on_exit} PROPERTIES FOLDER ${asio})
 
 set(time_count time_count)
 add_library(${time_count})
@@ -17,6 +20,7 @@ target_sources(${time_count}
     include/time_count.hpp
     src/time_count.cpp
 )
+set_target_properties(${time_count} PROPERTIES FOLDER ${asio})
 
 set(asio_lite asio_lite)
 add_library(${asio_lite})
@@ -26,6 +30,9 @@ target_sources(${asio_lite}
   PRIVATE
     src/asio_lite.cpp
 )
+set_target_properties(${asio_lite} PROPERTIES FOLDER ${asio})
+
+find_package(Catch2 3 REQUIRED)
 
 set(asio_common asio_common)
 add_library(${asio_common} INTERFACE)
@@ -33,8 +40,10 @@ target_link_libraries(${asio_common} INTERFACE
   Boost::headers
   spdlog::spdlog
   ${time_count}
+  Catch2::Catch2
 )
 target_include_directories(${asio_common} INTERFACE include)
+set_target_properties(${asio_common} PROPERTIES FOLDER ${asio})
 
 set(context_common context_common)
 add_library(${context_common} INTERFACE)
@@ -43,6 +52,7 @@ target_link_libraries(${context_common} INTERFACE
   Boost::context
   ${on_exit}
 )
+set_target_properties(${context_common} PROPERTIES FOLDER ${asio})
 
 set(asio_callback asio_callback)
 add_executable(${asio_callback})
@@ -52,6 +62,7 @@ target_sources(${asio_callback} PRIVATE
 target_link_libraries(${asio_callback} PRIVATE
   ${asio_common}
 )
+set_target_properties(${asio_callback} PROPERTIES FOLDER ${asio})
 
 set(asio_switch asio_switch)
 add_executable(${asio_switch})
@@ -61,6 +72,7 @@ target_sources(${asio_switch} PRIVATE
 target_link_libraries(${asio_switch} PRIVATE
   ${asio_common}
 )
+set_target_properties(${asio_switch} PROPERTIES FOLDER ${asio})
 
 set(asio_coroutine2 asio_coroutine2)
 add_executable(${asio_coroutine2})
@@ -70,6 +82,7 @@ target_sources(${asio_coroutine2} PRIVATE
 target_link_libraries(${asio_coroutine2} PRIVATE
   ${context_common}
 )
+set_target_properties(${asio_coroutine2} PROPERTIES FOLDER ${asio})
 
 set(asio_continuatioin asio_continuatioin)
 add_executable(${asio_continuatioin})
@@ -79,6 +92,7 @@ target_sources(${asio_continuatioin} PRIVATE
 target_link_libraries(${asio_continuatioin} PRIVATE
   ${context_common}
 )
+set_target_properties(${asio_continuatioin} PROPERTIES FOLDER ${asio})
 
 set(asio_context_fiber asio_context_fiber)
 add_executable(${asio_context_fiber})
@@ -88,6 +102,7 @@ target_sources(${asio_context_fiber} PRIVATE
 target_link_libraries(${asio_context_fiber} PRIVATE
   ${context_common}
 )
+set_target_properties(${asio_context_fiber} PROPERTIES FOLDER ${asio})
 
 set(asio_fiber asio_fiber)
 add_executable(${asio_fiber})
@@ -98,6 +113,7 @@ target_link_libraries(${asio_fiber} PRIVATE
   ${context_common}
   Boost::fiber
 )
+set_target_properties(${asio_fiber} PROPERTIES FOLDER ${asio})
 
 set(asio_std_coroutine asio_std_coroutine)
 add_executable(${asio_std_coroutine})
@@ -109,3 +125,4 @@ target_link_libraries(${asio_std_coroutine} PRIVATE
   ${asio_lite}
 )
 target_compile_features(${asio_std_coroutine} PRIVATE cxx_std_20)
+set_target_properties(${asio_std_coroutine} PROPERTIES FOLDER ${asio})

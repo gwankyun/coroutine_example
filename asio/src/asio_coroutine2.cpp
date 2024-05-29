@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <catch2/../catch2/catch_session.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <spdlog/spdlog.h>
 #define BOOST_ALL_NO_LIB 1
 #include <boost/asio.hpp>
@@ -32,7 +34,7 @@ namespace type
 
 namespace t = type;
 
-void handle(asio::io_context& _io_context, int _count)
+void handle(asio::io_context& _io_context, int _count, std::vector<std::string>& _output)
 {
     using pull_ptr = std::unique_ptr<t::pull>;
 
@@ -61,6 +63,7 @@ void handle(asio::io_context& _io_context, int _count)
                 _yield();
 
                 SPDLOG_INFO("id: {} value: {}", _id, i);
+                _output[_id] += i;
             }
         };
     };
@@ -103,16 +106,25 @@ void handle(asio::io_context& _io_context, int _count)
     }
 }
 
-int main()
+TEST_CASE("asio_corotinue2", "[corotinue2]")
+{
+    std::vector<std::string> output(3);
+
+    asio::io_context io_context;
+
+    handle(io_context, 3, output);
+
+    for (auto& i : output)
+    {
+        REQUIRE(i == "abc");
+    }
+}
+
+int main(int argc, char* argv[])
 {
     std::string log_format{"[%C-%m-%d %T.%e] [%^%L%$] [%-20!!:%4#] %v"};
     spdlog::set_pattern(log_format);
 
-    asio::io_context io_context;
-
-    auto count = common::time_count([&] { handle(io_context, 3); });
-
-    SPDLOG_INFO("used times: {}", count);
-
-    return 0;
+    auto result = Catch::Session().run(argc, argv);
+    return result;
 }
