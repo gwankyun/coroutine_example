@@ -86,13 +86,14 @@ void accept_handle(asio::io_context& _io_context, int _count, t::id& _id, t::sta
 
 TEST_CASE("asio_switch", "[switch]")
 {
-    std::vector<std::string> output(3);
+    auto count = 3u;
+    std::vector<std::string> output(count);
 
     asio::io_context io_context;
 
     t::id id = 0;
     t::state state = 0;
-    accept_handle(io_context, 3, id, state, output);
+    accept_handle(io_context, count, id, state, output);
 
     io_context.run();
 

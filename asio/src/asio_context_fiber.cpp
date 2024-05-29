@@ -7,7 +7,8 @@
 #include <catch2/../catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <spdlog/spdlog.h>
-#define BOOST_ALL_NO_LIB 1
+#define BOOST_LIB_DIAGNOSTIC
+#define BOOST_ALL_NO_LIB
 #include <boost/asio.hpp>
 #include <boost/context/fiber.hpp>
 
@@ -136,11 +137,12 @@ void handle(asio::io_context& _io_context, int _count, bool _manage_on_sub, std:
 
 TEST_CASE("asio_context_fiber", "[context_fiber]")
 {
-    std::vector<std::string> output(3);
+    auto count = 3u;
+    std::vector<std::string> output(count);
 
     asio::io_context io_context;
 
-    handle(io_context, 3, true, output);
+    handle(io_context, count, true, output);
 
     for (auto& i : output)
     {

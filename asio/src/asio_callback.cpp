@@ -58,10 +58,11 @@ void accept_handle(asio::io_context& _io_context, int _count, int _id, std::vect
 
 TEST_CASE("asio_callback", "[callback]")
 {
-    std::vector<std::string> output(3);
+    auto count = 3u;
+    std::vector<std::string> output(count);
 
     asio::io_context io_context;
-    asio::post(io_context, [&] { accept_handle(io_context, 3, 0, output); });
+    asio::post(io_context, [&] { accept_handle(io_context, count, 0, output); });
     io_context.run();
 
     for (auto& i : output)

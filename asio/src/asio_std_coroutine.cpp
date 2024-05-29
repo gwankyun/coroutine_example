@@ -127,11 +127,12 @@ t::task accept_handle(asio::io_context& _io_context, int _count, std::vector<std
 
 TEST_CASE("asio_context_fiber", "[context_fiber]")
 {
-    std::vector<std::string> output(3);
+    auto count = 3u;
+    std::vector<std::string> output(count);
 
     asio::io_context io_context;
 
-    accept_handle(io_context, 3, output);
+    accept_handle(io_context, count, output);
     io_context.run();
 
     for (auto& i : output)
