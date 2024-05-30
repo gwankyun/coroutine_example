@@ -78,6 +78,4 @@ int main(int argc, char* argv[])
 
     auto result = Catch::Session().run(argc, argv);
     return result;
-
-    return 0;
 }

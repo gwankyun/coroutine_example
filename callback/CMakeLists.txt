@@ -1,4 +1,5 @@
 ﻿set(callback callback)
+set(CMAKE_FOLDER ${callback})
 
 set(callback_required callback_required)
 add_library(${callback_required} INTERFACE)
@@ -29,7 +30,6 @@ target_link_libraries(${callback_server}
   PRIVATE
     ${callback_required}
 )
-set_target_properties(${callback_server} PROPERTIES FOLDER ${callback})
 
 set(callback_client callback_client)
 add_executable(${callback_client})
@@ -41,7 +41,6 @@ target_link_libraries(${callback_client}
   PRIVATE
     ${callback_required}
 )
-set_target_properties(${callback_client} PROPERTIES FOLDER ${callback})
 
 # set(callback_required callback_required)
 # add_library(${callback_required} INTERFACE)

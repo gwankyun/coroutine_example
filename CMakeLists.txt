@@ -139,6 +139,8 @@ target_sources(${main} PRIVATE
 )
 target_link_libraries(${main} PRIVATE ${common_required})
 
+add_subdirectory(asio)
+
 set(coro_std coro_std)
 add_executable(${coro_std})
 target_sources(${coro_std} PRIVATE
@@ -155,8 +157,6 @@ target_link_libraries(${coro_std} PRIVATE ${common_required})
 #   Boost::headers
 #   spdlog::spdlog
 # )
-
-add_subdirectory(asio)
 
 # set(boost_coro2 boost_coro2)
 # add_executable(${boost_coro2})
