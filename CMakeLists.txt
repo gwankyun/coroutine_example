@@ -1,5 +1,5 @@
 ﻿# cmake最低版本
-cmake_minimum_required(VERSION 3.29.2)
+cmake_minimum_required(VERSION 3.30.0)
 
 # 項目名
 set(project coroutine_example)
@@ -53,9 +53,8 @@ endif()
 
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:${msvc_options}>")
 
-if(${CMAKE_VERSION} VERSION_LESS_EQUAL "3.29.2")
-  set(Boost_NO_WARN_NEW_VERSIONS ON)
-  set(BOOST_ROOT "$ENV{ProgramFiles}/boost_1_85_0")
+if(POLICY CMP0167)
+  cmake_policy(SET CMP0167 NEW)
 endif()
 find_package(Boost REQUIRED COMPONENTS context fiber) # 必需
 check_package(Boost)
