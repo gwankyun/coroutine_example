@@ -36,3 +36,4 @@
 /build
 /coroutine_example-cppcheck-build-dir
 /.vscode
+/out
