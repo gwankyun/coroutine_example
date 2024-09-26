@@ -4,6 +4,7 @@
 #include <queue>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 #include <cstdlib> // std::exit
 
@@ -22,6 +23,7 @@ namespace type
 {
     using coroutine = std::coroutine_handle<>;
     using id = int;
+    using output = std::unordered_map<id, std::string>;
 
     struct task
     {
@@ -91,7 +93,7 @@ namespace func
 
 namespace f = func;
 
-t::task handle(asio::io_context& _io_context, t::id _id, std::vector<std::string>& _output)
+t::task handle(asio::io_context& _io_context, t::id _id, t::output& _output)
 {
     t::coroutine coroutine; // 用於保存協程句柄
 
@@ -111,7 +113,7 @@ t::task handle(asio::io_context& _io_context, t::id _id, std::vector<std::string
     }
 }
 
-t::task accept_handle(asio::io_context& _io_context, int _count, std::vector<std::string>& _output)
+t::task accept_handle(asio::io_context& _io_context, int _count, t::output& _output)
 {
     t::coroutine coroutine; // 用於保存協程句柄
 
@@ -128,7 +130,7 @@ t::task accept_handle(asio::io_context& _io_context, int _count, std::vector<std
 TEST_CASE("asio_context_fiber", "[context_fiber]")
 {
     auto count = 3u;
-    std::vector<std::string> output(count);
+    t::output output(count);
 
     asio::io_context io_context;
 
@@ -137,15 +139,15 @@ TEST_CASE("asio_context_fiber", "[context_fiber]")
 
     for (auto& i : output)
     {
-        REQUIRE(i == "abc");
+        REQUIRE(i.second == "abc");
     }
 }
 
-int main(int argc, char* argv[])
+int main(int _argc, char* _argv[])
 {
     std::string log_format{"[%C-%m-%d %T.%e] [%^%L%$] [%-20!!:%4#] %v"};
     spdlog::set_pattern(log_format);
 
-    auto result = Catch::Session().run(argc, argv);
+    auto result = Catch::Session().run(_argc, _argv);
     return result;
 }

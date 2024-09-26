@@ -44,7 +44,7 @@
             "description": "This build is only available on Windows",
             "generator": "Visual Studio 17 2022",
             "environment": {
-                "CMAKE_PREFIX_PATH": "c:/Program Files/boost_1_85_0/lib64-msvc-14.3/cmake"
+                "CMAKE_PREFIX_PATH": "c:/Program Files/boost_1_86_0/lib64-msvc-14.3/cmake"
             },
             "condition": {
                 "type": "equals",

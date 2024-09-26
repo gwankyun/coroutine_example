@@ -31,11 +31,12 @@ namespace type
     using pull = pull_type<>;
     using push = push_type<>;
     using id = int;
+    using output = std::unordered_map<id, std::string>;
 } // namespace type
 
 namespace t = type;
 
-void handle(asio::io_context& _io_context, int _count, std::vector<std::string>& _output)
+void handle(asio::io_context& _io_context, int _count, t::output& _output)
 {
     using pull_ptr = std::unique_ptr<t::pull>;
 
@@ -110,7 +111,7 @@ void handle(asio::io_context& _io_context, int _count, std::vector<std::string>&
 TEST_CASE("asio_corotinue2", "[corotinue2]")
 {
     auto count = 3u;
-    std::vector<std::string> output(count);
+    t::output output(count);
 
     asio::io_context io_context;
 
@@ -118,15 +119,15 @@ TEST_CASE("asio_corotinue2", "[corotinue2]")
 
     for (auto& i : output)
     {
-        REQUIRE(i == "abc");
+        REQUIRE(i.second == "abc");
     }
 }
 
-int main(int argc, char* argv[])
+int main(int _argc, char* _argv[])
 {
     std::string log_format{"[%C-%m-%d %T.%e] [%^%L%$] [%-20!!:%4#] %v"};
     spdlog::set_pattern(log_format);
 
-    auto result = Catch::Session().run(argc, argv);
+    auto result = Catch::Session().run(_argc, _argv);
     return result;
 }

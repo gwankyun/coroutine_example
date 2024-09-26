@@ -19,6 +19,7 @@ namespace type
 {
     using continuation = context::continuation;
     using id = int;
+    using output = std::unordered_map<id, std::string>;
 } // namespace type
 
 namespace t = type;
@@ -35,7 +36,7 @@ namespace func
 
 namespace f = func;
 
-void handle(asio::io_context& _io_context, int _count, bool _manage_on_sub, std::vector<std::string>& _output)
+void handle(asio::io_context& _io_context, int _count, bool _manage_on_sub, t::output& _output)
 {
     using continuation_ptr = std::unique_ptr<t::continuation>;
 
@@ -132,7 +133,7 @@ void handle(asio::io_context& _io_context, int _count, bool _manage_on_sub, std:
 TEST_CASE("asio_continuation", "[continuation]")
 {
     auto count = 3u;
-    std::vector<std::string> output(count);
+    t::output output(count);
 
     asio::io_context io_context;
 
@@ -140,15 +141,15 @@ TEST_CASE("asio_continuation", "[continuation]")
 
     for (auto& i : output)
     {
-        REQUIRE(i == "abc");
+        REQUIRE(i.second == "abc");
     }
 }
 
-int main(int argc, char* argv[])
+int main(int _argc, char* _argv[])
 {
     std::string log_format{"[%C-%m-%d %T.%e] [%^%L%$] [%-20!!:%4#] %v"};
     spdlog::set_pattern(log_format);
 
-    auto result = Catch::Session().run(argc, argv);
+    auto result = Catch::Session().run(_argc, _argv);
     return result;
 }

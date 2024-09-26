@@ -15,7 +15,8 @@ namespace asio = boost::asio;
 namespace type
 {
     using id = int;
-}
+    using output = std::unordered_map<id, std::string>;
+} // namespace type
 
 namespace t = type;
 
@@ -26,7 +27,7 @@ struct Data
     t::id id;
 };
 
-void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data, std::vector<std::string>& _output)
+void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data, t::output& _output)
 {
     auto& data = *_data;
     auto& offset = data.offset;
@@ -42,7 +43,7 @@ void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data, std::vec
     }
 }
 
-void accept_handle(asio::io_context& _io_context, int _count, int _id, std::vector<std::string>& _output)
+void accept_handle(asio::io_context& _io_context, int _count, int _id, t::output& _output)
 {
     if (_id < _count)
     {
@@ -59,7 +60,7 @@ void accept_handle(asio::io_context& _io_context, int _count, int _id, std::vect
 TEST_CASE("asio_callback", "[callback]")
 {
     auto count = 3u;
-    std::vector<std::string> output(count);
+    t::output output(count);
 
     asio::io_context io_context;
     asio::post(io_context, [&] { accept_handle(io_context, count, 0, output); });
@@ -67,15 +68,15 @@ TEST_CASE("asio_callback", "[callback]")
 
     for (auto& i : output)
     {
-        REQUIRE(i == "abc");
+        REQUIRE(i.second == "abc");
     }
 }
 
-int main(int argc, char* argv[])
+int main(int _argc, char* _argv[])
 {
     std::string log_format{"[%C-%m-%d %T.%e] [%^%L%$] [%-20!!:%4#] %v"};
     spdlog::set_pattern(log_format);
 
-    auto result = Catch::Session().run(argc, argv);
+    auto result = Catch::Session().run(_argc, _argv);
     return result;
 }
