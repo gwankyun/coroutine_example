@@ -1,16 +1,16 @@
-﻿#include <concepts>  // std::invocable
-#include <coroutine> // std::coroutine_handle std::suspend_never
+﻿#include <concepts>   // std::invocable
+#include <coroutine>  // std::coroutine_handle std::suspend_never
 #include <functional> // std::function
 #include <queue>
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 #include <cstdlib> // std::exit
 
+#include <boost/asio.hpp>
 #include <catch2/../catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
-#include <boost/asio.hpp>
 #include <spdlog/spdlog.h>
 
 #include "asio_lite.h"

@@ -1,6 +1,6 @@
 ﻿#include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 #include <boost/asio.hpp>
 #include <catch2/../catch2/catch_session.hpp>
@@ -65,8 +65,7 @@ void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data, t::outpu
     CORO_END();
 }
 
-void accept_handle(asio::io_context& _io_context, int _count, t::id& _id, t::state& _state,
-                   t::output& _output)
+void accept_handle(asio::io_context& _io_context, int _count, t::id& _id, t::state& _state, t::output& _output)
 {
     CORO_BEGIN(_state);
     for (; _id < _count; _id++)
