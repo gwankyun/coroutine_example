@@ -32,6 +32,7 @@ target_sources(${asio_lite}
 )
 
 find_package(Catch2 3 REQUIRED)
+check_package(Catch2)
 
 set(asio_common asio_common)
 add_library(${asio_common} INTERFACE)

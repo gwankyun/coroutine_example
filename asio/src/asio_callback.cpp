@@ -23,23 +23,24 @@ namespace t = type;
 struct Data
 {
     std::vector<std::string> value;
-    std::size_t offset = 0;
+    // std::size_t offset = 0;
     t::id id;
 };
 
-void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data, t::output& _output)
+void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data, std::size_t _offset, t::output& _output)
 {
     auto& data = *_data;
-    auto& offset = data.offset;
+    // auto& offset = data.offset;
     auto& value = data.value;
     auto& id = data.id;
 
-    if (offset < value.size())
+    if (_offset < value.size())
     {
-        SPDLOG_INFO("id: {} value: {}", id, value[offset]);
-        _output[id] += value[offset];
-        offset += 1;
-        asio::post(_io_context, [&, _data] { handle(_io_context, _data, _output); });
+        SPDLOG_INFO("id: {} value: {}", id, value[_offset]);
+        _output[id] += value[_offset];
+        // offset += 1;
+        auto handle_next = [&, _data, _offset] { handle(_io_context, _data, _offset + 1, _output); };
+        asio::post(_io_context, handle_next);
     }
 }
 
@@ -51,9 +52,11 @@ void accept_handle(asio::io_context& _io_context, int _count, int _id, t::output
         data->value = {"a", "b", "c"};
         data->id = _id;
 
-        asio::post(_io_context, [&, data] { handle(_io_context, data, _output); });
+        auto handle_data = [&, data] { handle(_io_context, data, 0, _output); };
+        asio::post(_io_context, handle_data);
 
-        asio::post(_io_context, [&, _count, _id] { accept_handle(_io_context, _count, _id + 1, _output); });
+        auto accept_next = [&, _count, _id] { accept_handle(_io_context, _count, _id + 1, _output); };
+        asio::post(_io_context, accept_next);
     }
 }
 

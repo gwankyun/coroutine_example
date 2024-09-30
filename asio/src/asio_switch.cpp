@@ -40,27 +40,27 @@ namespace t = type;
 struct Data
 {
     std::vector<std::string> value;
-    std::size_t offset = 0;
+    // std::size_t offset = 0;
     t::id id;
     t::state state = 0;
 };
 
-void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data, t::output& _output)
+void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data, std::size_t _offset, t::output& _output)
 {
     auto& data = *_data;
-    auto& offset = data.offset;
+    // auto& offset = data.offset;
     auto& value = data.value;
     auto& id = data.id;
     auto& state = data.state;
 
     CORO_BEGIN(state);
-    for (; offset < value.size(); offset++)
+    for (; _offset < value.size(); _offset++)
     {
-        asio::post(_io_context, [&, _data] { handle(_io_context, _data, _output); });
+        asio::post(_io_context, [&, _data, _offset] { handle(_io_context, _data, _offset, _output); });
         CORO_YIELD(state);
 
-        SPDLOG_INFO("id: {} value: {}", id, value[offset]);
-        _output[id] += value[offset];
+        SPDLOG_INFO("id: {} value: {}", id, value[_offset]);
+        _output[id] += value[_offset];
     }
     CORO_END();
 }
@@ -80,7 +80,8 @@ void accept_handle(asio::io_context& _io_context, int _count, t::id& _id, t::sta
             data->value = {"a", "b", "c"};
             data->id = _id;
 
-            asio::post(_io_context, [&, data] { handle(_io_context, data, _output); });
+            // asio::post(_io_context, [&, data] { handle(_io_context, data, 0, _output); });
+            handle(_io_context, data, 0, _output);
         }();
     }
     CORO_END();
