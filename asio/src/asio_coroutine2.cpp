@@ -59,13 +59,15 @@ void handle(asio::io_context& _io_context, int _count, t::output& _output)
                 "b",
                 "c",
             };
-            for (auto& i : vec)
+            while (!vec.empty())
             {
+                auto v = vec.back();
+                _output[_id] += v;
+                vec.pop_back();
+                SPDLOG_INFO("id: {} value: {}", _id, v);
+
                 asio::post(_io_context, cb);
                 _yield();
-
-                SPDLOG_INFO("id: {} value: {}", _id, i);
-                _output[_id] += i;
             }
         };
     };
@@ -119,7 +121,7 @@ TEST_CASE("asio_corotinue2", "[corotinue2]")
 
     for (auto& i : output)
     {
-        REQUIRE(i.second == "abc");
+        REQUIRE(i.second == "cba");
     }
 }
 

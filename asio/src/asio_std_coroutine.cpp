@@ -104,12 +104,14 @@ t::task handle(asio::io_context& _io_context, t::id _id, t::output& _output)
         "b",
         "c",
     };
-    for (auto& i : vec)
+    while (!vec.empty())
     {
-        co_await f::async_resume(coroutine, [&] { asio::post(_io_context, resume); });
+        auto v = vec.back();
+        _output[_id] += v;
+        vec.pop_back();
+        SPDLOG_INFO("id: {} value: {}", _id, v);
 
-        SPDLOG_INFO("id: {} value: {}", _id, i);
-        _output[_id] += i;
+        co_await f::async_resume(coroutine, [&] { asio::post(_io_context, resume); });
     }
 }
 
@@ -121,9 +123,9 @@ t::task accept_handle(asio::io_context& _io_context, int _count, t::output& _out
 
     for (auto i = 0; i < _count; i++)
     {
-        co_await f::async_resume(coroutine, [&] { asio::post(_io_context, resume); });
-
         handle(_io_context, i, _output);
+        
+        co_await f::async_resume(coroutine, [&] { asio::post(_io_context, resume); });
     }
 }
 
@@ -139,7 +141,7 @@ TEST_CASE("asio_context_fiber", "[context_fiber]")
 
     for (auto& i : output)
     {
-        REQUIRE(i.second == "abc");
+        REQUIRE(i.second == "cba");
     }
 }
 

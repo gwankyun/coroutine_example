@@ -76,8 +76,13 @@ void handle(asio::io_context& _io_context, int _count, t::output& _output)
                 "b",
                 "c",
             };
-            for (auto& i : vec)
+            while (!vec.empty())
             {
+                auto v = vec.back();
+                _output[_id] += v;
+                vec.pop_back();
+                SPDLOG_INFO("id: {} value: {}", _id, v);
+
                 bool finished = false;
                 asio::post(_io_context, [&] { finished = true; });
                 while (!finished)
@@ -85,9 +90,6 @@ void handle(asio::io_context& _io_context, int _count, t::output& _output)
                     SPDLOG_INFO("id: {} yield", _id);
                     this_fiber::yield();
                 }
-
-                SPDLOG_INFO("id: {} value: {}", _id, i);
-                _output[_id] += i;
             }
         };
     };
@@ -131,7 +133,7 @@ TEST_CASE("asio_context_fiber", "[context_fiber]")
 
     for (auto& i : output)
     {
-        REQUIRE(i.second == "abc");
+        REQUIRE(i.second == "cba");
     }
 }
 

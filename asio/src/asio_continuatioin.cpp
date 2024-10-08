@@ -59,13 +59,15 @@ void handle(asio::io_context& _io_context, int _count, bool _manage_on_sub, t::o
                 "b",
                 "c",
             };
-            for (auto& i : vec)
+            while (!vec.empty())
             {
+                auto v = vec.back();
+                _output[_id] += v;
+                vec.pop_back();
+                SPDLOG_INFO("id: {} value: {}", _id, v);
+
                 asio::post(_io_context, cb);
                 f::resume(_sink);
-
-                SPDLOG_INFO("id: {} value: {}", _id, i);
-                _output[_id] += i;
             }
             return std::move(_sink);
         };
@@ -141,7 +143,7 @@ TEST_CASE("asio_continuation", "[continuation]")
 
     for (auto& i : output)
     {
-        REQUIRE(i.second == "abc");
+        REQUIRE(i.second == "cba");
     }
 }
 

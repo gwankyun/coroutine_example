@@ -40,27 +40,30 @@ namespace t = type;
 struct Data
 {
     std::vector<std::string> value;
-    // std::size_t offset = 0;
     t::id id;
     t::state state = 0;
 };
 
-void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data, std::size_t _offset, t::output& _output)
+void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data, t::output& _output)
 {
     auto& data = *_data;
-    // auto& offset = data.offset;
     auto& value = data.value;
     auto& id = data.id;
     auto& state = data.state;
 
     CORO_BEGIN(state);
-    for (; _offset < value.size(); _offset++)
+    while (!value.empty())
     {
-        asio::post(_io_context, [&, _data, _offset] { handle(_io_context, _data, _offset, _output); });
-        CORO_YIELD(state);
+        [&]
+        {
+            auto v = value.back();
+            _output[id] += v;
+            value.pop_back();
+            SPDLOG_INFO("id: {} value: {}", id, v);
+        }();
 
-        SPDLOG_INFO("id: {} value: {}", id, value[_offset]);
-        _output[id] += value[_offset];
+        asio::post(_io_context, [&, _data] { handle(_io_context, _data, _output); });
+        CORO_YIELD(state);
     }
     CORO_END();
 }
@@ -70,9 +73,6 @@ void accept_handle(asio::io_context& _io_context, int _count, t::id& _id, t::sta
     CORO_BEGIN(_state);
     for (; _id < _count; _id++)
     {
-        asio::post(_io_context, [&, _count] { accept_handle(_io_context, _count, _id, _state, _output); });
-        CORO_YIELD(_state);
-
         // switch內不能有局部變量。
         [&, _id]
         {
@@ -80,9 +80,11 @@ void accept_handle(asio::io_context& _io_context, int _count, t::id& _id, t::sta
             data->value = {"a", "b", "c"};
             data->id = _id;
 
-            // asio::post(_io_context, [&, data] { handle(_io_context, data, 0, _output); });
-            handle(_io_context, data, 0, _output);
+            handle(_io_context, data, _output);
         }();
+
+        asio::post(_io_context, [&, _count] { accept_handle(_io_context, _count, _id, _state, _output); });
+        CORO_YIELD(_state);
     }
     CORO_END();
 }
@@ -102,7 +104,7 @@ TEST_CASE("asio_switch", "[switch]")
 
     for (auto& i : output)
     {
-        REQUIRE(i.second == "abc");
+        REQUIRE(i.second == "cba");
     }
 }
 

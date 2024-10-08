@@ -23,23 +23,22 @@ namespace t = type;
 struct Data
 {
     std::vector<std::string> value;
-    // std::size_t offset = 0;
     t::id id;
 };
 
-void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data, std::size_t _offset, t::output& _output)
+void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data, t::output& _output)
 {
     auto& data = *_data;
-    // auto& offset = data.offset;
     auto& value = data.value;
     auto& id = data.id;
 
-    if (_offset < value.size())
+    if (!value.empty())
     {
-        SPDLOG_INFO("id: {} value: {}", id, value[_offset]);
-        _output[id] += value[_offset];
-        // offset += 1;
-        auto handle_next = [&, _data, _offset] { handle(_io_context, _data, _offset + 1, _output); };
+        auto v = value.back();
+        _output[id] += v;
+        value.pop_back();
+        SPDLOG_INFO("id: {} value: {}", id, v);
+        auto handle_next = [&, _data] { handle(_io_context, _data, _output); };
         asio::post(_io_context, handle_next);
     }
 }
@@ -52,7 +51,7 @@ void accept_handle(asio::io_context& _io_context, int _count, int _id, t::output
         data->value = {"a", "b", "c"};
         data->id = _id;
 
-        auto handle_data = [&, data] { handle(_io_context, data, 0, _output); };
+        auto handle_data = [&, data] { handle(_io_context, data, _output); };
         asio::post(_io_context, handle_data);
 
         auto accept_next = [&, _count, _id] { accept_handle(_io_context, _count, _id + 1, _output); };
@@ -71,7 +70,7 @@ TEST_CASE("asio_callback", "[callback]")
 
     for (auto& i : output)
     {
-        REQUIRE(i.second == "abc");
+        REQUIRE(i.second == "cba");
     }
 }
 
