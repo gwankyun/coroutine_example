@@ -124,7 +124,7 @@ t::task accept_handle(asio::io_context& _io_context, int _count, t::output& _out
     for (auto i = 0; i < _count; i++)
     {
         handle(_io_context, i, _output);
-        
+
         co_await f::async_resume(coroutine, [&] { asio::post(_io_context, resume); });
     }
 }

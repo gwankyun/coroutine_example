@@ -62,6 +62,9 @@ check_package(Boost)
 find_package(spdlog CONFIG) # 可選
 check_package(spdlog)
 
+find_package(Catch2 3 REQUIRED)
+check_package(Catch2)
+
 option(use_cxx_23 "" ON)
 set(cxx_std cxx_std_20)
 if(use_cxx_23)
@@ -136,7 +139,7 @@ add_executable(${main})
 target_sources(${main} PRIVATE
   src/main.cpp
 )
-target_link_libraries(${main} PRIVATE ${common_required})
+target_link_libraries(${main} PRIVATE ${common_required} Catch2::Catch2)
 
 add_subdirectory(asio)
 

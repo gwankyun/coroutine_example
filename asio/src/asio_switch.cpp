@@ -9,7 +9,6 @@
 
 #include "time_count.h"
 
-// clang-format off
 #define CORO_BEGIN(_state) \
     switch (_state) \
     { \
@@ -24,7 +23,6 @@
     } while (false)
 
 #define CORO_END() }
-// clang-format on
 
 namespace asio = boost::asio;
 
