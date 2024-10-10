@@ -22,8 +22,9 @@ namespace t = type;
 
 struct Data
 {
-    std::vector<std::string> value;
     t::id id;
+    std::string value;
+    std::size_t offset = 0;
 };
 
 void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data, t::output& _output)
@@ -31,13 +32,14 @@ void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data, t::outpu
     auto& data = *_data;
     auto& value = data.value;
     auto& id = data.id;
+    auto& offset = data.offset;
 
-    if (!value.empty())
+    if (offset < value.size())
     {
-        auto v = value.back();
+        auto v = value[offset];
         _output[id] += v;
-        value.pop_back();
         SPDLOG_INFO("id: {} value: {}", id, v);
+        offset++;
         auto handle_next = [&, _data] { handle(_io_context, _data, _output); };
         asio::post(_io_context, handle_next);
     }
@@ -48,7 +50,7 @@ void accept_handle(asio::io_context& _io_context, int _count, int _id, t::output
     if (_id < _count)
     {
         auto data = std::make_shared<Data>();
-        data->value = {"a", "b", "c"};
+        data->value = "abc";
         data->id = _id;
 
         auto handle_data = [&, data] { handle(_io_context, data, _output); };
@@ -70,7 +72,7 @@ TEST_CASE("asio_callback", "[callback]")
 
     for (auto& i : output)
     {
-        REQUIRE(i.second == "cba");
+        REQUIRE(i.second == "abc");
     }
 }
 

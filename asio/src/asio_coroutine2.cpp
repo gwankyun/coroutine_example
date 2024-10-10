@@ -54,16 +54,10 @@ void handle(asio::io_context& _io_context, int _count, t::output& _output)
             auto cb = [&, _id] { awake_cont.push(_id); };
             // 最後喚醒一次，讓管理協程得知已結束
             ON_EXIT(cb);
-            std::vector<std::string> vec{
-                "a",
-                "b",
-                "c",
-            };
-            while (!vec.empty())
+            std::string buffer = "abc";
+            for (auto& v : buffer)
             {
-                auto v = vec.back();
                 _output[_id] += v;
-                vec.pop_back();
                 SPDLOG_INFO("id: {} value: {}", _id, v);
 
                 asio::post(_io_context, cb);
@@ -121,7 +115,7 @@ TEST_CASE("asio_corotinue2", "[corotinue2]")
 
     for (auto& i : output)
     {
-        REQUIRE(i.second == "cba");
+        REQUIRE(i.second == "abc");
     }
 }
 

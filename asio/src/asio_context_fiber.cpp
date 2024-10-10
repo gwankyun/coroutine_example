@@ -56,16 +56,10 @@ void handle(asio::io_context& _io_context, int _count, bool _manage_on_sub, t::o
         {
             auto cb = [&, _id] { awake_cont.push(_id); };
             ON_EXIT(cb);
-            std::vector<std::string> vec{
-                "a",
-                "b",
-                "c",
-            };
-            while (!vec.empty())
+            std::string buffer = "abc";
+            for (auto& v : buffer)
             {
-                auto v = vec.back();
                 _output[_id] += v;
-                vec.pop_back();
                 SPDLOG_INFO("id: {} value: {}", _id, v);
 
                 asio::post(_io_context, cb);
@@ -149,7 +143,7 @@ TEST_CASE("asio_context_fiber", "[context_fiber]")
 
     for (auto& i : output)
     {
-        REQUIRE(i.second == "cba");
+        REQUIRE(i.second == "abc");
     }
 }
 

@@ -37,8 +37,9 @@ namespace t = type;
 
 struct Data
 {
-    std::vector<std::string> value;
     t::id id;
+    std::string value;
+    std::size_t offset = 0;
     t::state state = 0;
 };
 
@@ -48,15 +49,15 @@ void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data, t::outpu
     auto& value = data.value;
     auto& id = data.id;
     auto& state = data.state;
+    auto& offset = data.offset;
 
     CORO_BEGIN(state);
-    while (!value.empty())
+    for (offset = 0; offset < value.size(); offset++)
     {
         [&]
         {
-            auto v = value.back();
+            auto v = value[offset];
             _output[id] += v;
-            value.pop_back();
             SPDLOG_INFO("id: {} value: {}", id, v);
         }();
 
@@ -69,13 +70,13 @@ void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data, t::outpu
 void accept_handle(asio::io_context& _io_context, int _count, t::id& _id, t::state& _state, t::output& _output)
 {
     CORO_BEGIN(_state);
-    for (; _id < _count; _id++)
+    for (_id = 0; _id < _count; _id++)
     {
         // switch內不能有局部變量。
         [&, _id]
         {
             auto data = std::make_shared<Data>();
-            data->value = {"a", "b", "c"};
+            data->value = "abc";
             data->id = _id;
 
             handle(_io_context, data, _output);
@@ -102,7 +103,7 @@ TEST_CASE("asio_switch", "[switch]")
 
     for (auto& i : output)
     {
-        REQUIRE(i.second == "cba");
+        REQUIRE(i.second == "abc");
     }
 }
 
