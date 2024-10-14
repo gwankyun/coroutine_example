@@ -9,7 +9,7 @@
 #include <spdlog/spdlog.h>
 #define BOOST_LIB_DIAGNOSTIC
 #define BOOST_ALL_NO_LIB
-#include <boost/asio.hpp>
+#include "asio_common.hpp"
 #include <boost/context/fiber.hpp>
 
 #include "on_exit.h"
@@ -25,8 +25,6 @@ namespace type
 } // namespace type
 
 namespace t = type;
-
-namespace asio = boost::asio;
 
 namespace func
 {

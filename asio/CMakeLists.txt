@@ -38,6 +38,7 @@ target_link_libraries(${asio_common} INTERFACE
   spdlog::spdlog
   ${time_count}
   Catch2::Catch2
+  asio::asio
 )
 target_include_directories(${asio_common} INTERFACE include)
 

@@ -7,13 +7,14 @@
 #include <spdlog/spdlog.h>
 #define BOOST_LIB_DIAGNOSTIC
 #define BOOST_ALL_NO_LIB
-#include <boost/asio.hpp>
+#include "asio_common.hpp"
+
+// https://github.com/boostorg/fiber/issues/314
+#define BOOST_FIBERS_STATIC_LINK
 #include <boost/fiber/all.hpp>
 
 #include "on_exit.h"
 #include "time_count.h"
-
-namespace asio = boost::asio;
 
 namespace fibers = boost::fibers;
 namespace this_fiber = boost::this_fiber;

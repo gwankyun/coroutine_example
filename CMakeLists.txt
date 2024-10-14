@@ -56,13 +56,25 @@ add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:${msvc_options}>")
 if(POLICY CMP0167)
   cmake_policy(SET CMP0167 NEW)
 endif()
-find_package(Boost REQUIRED COMPONENTS context fiber) # 必需
-check_package(Boost)
+# find_package(Boost REQUIRED COMPONENTS context fiber) # 必需
+# check_package(Boost)
+find_package(boost_headers CONFIG REQUIRED)
+find_package(boost_context CONFIG REQUIRED)
+check_package(boost_context)
+find_package(boost_coroutine2 CONFIG REQUIRED)
+check_package(boost_coroutine2)
+find_package(boost_fiber CONFIG REQUIRED)
+check_package(boost_fiber)
 
-find_package(spdlog CONFIG) # 可選
+find_package(asio CONFIG REQUIRED)
+check_package(asio)
+
+# find_package(spdlog CONFIG) # 可選
+find_package(spdlog CONFIG REQUIRED)
 check_package(spdlog)
 
-find_package(Catch2 3 REQUIRED)
+# find_package(Catch2 3 REQUIRED)
+find_package(Catch2 CONFIG REQUIRED)
 check_package(Catch2)
 
 option(use_cxx_23 "" ON)
@@ -71,7 +83,8 @@ if(use_cxx_23)
   set(cxx_std cxx_std_23)
 endif()
 
-find_package(nlohmann_json REQUIRED)
+# find_package(nlohmann_json REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 check_package(nlohmann_json)
 
 set(common_required common_required)
@@ -97,8 +110,10 @@ add_library(${asio_required} INTERFACE)
 target_sources(${asio_required} INTERFACE
   include/coro.hpp
 )
+target_include_directories(${asio_required} INTERFACE include)
 target_link_libraries(${asio_required} INTERFACE
   Boost::headers
+  asio::asio
   ${common_required}
   ${coro2_required}
 )

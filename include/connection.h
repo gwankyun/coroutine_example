@@ -1,5 +1,6 @@
 ﻿#pragma once
-#include <boost/asio.hpp>
+// #include <boost/asio.hpp>
+#include "asio_common.hpp"
 #include <boost/system.hpp> // boost::system::error_code
 #include <cstddef>
 #include <format>
@@ -7,7 +8,7 @@
 #include <vector>
 
 using error_code_t = boost::system::error_code;
-namespace asio = boost::asio;
+// namespace asio = boost::asio;
 
 using acceptor_t = asio::ip::tcp::acceptor;
 using socket_t = asio::ip::tcp::socket;

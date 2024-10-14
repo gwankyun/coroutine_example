@@ -2,7 +2,8 @@
 #include <type_traits>
 #include <tuple> // std::tuple
 #define BOOST_ASIO_NO_DEPRECATED 1
-#include <boost/asio.hpp>   // boost::asio
+// #include <boost/asio.hpp>   // boost::asio
+#include "asio_common.hpp"
 #include <boost/system.hpp> // boost::system::error_code
 #include <coroutine>        // std::coroutine_handle std::suspend_never
 #include <concepts>         // std::invocable
@@ -40,7 +41,7 @@
 
 #define SPDLOG_DBG(_lvl, _value) CAT(SPDLOG_, _lvl)(DBG(_value))
 
-namespace asio = boost::asio;
+// namespace asio = boost::asio;
 using error_code_t = boost::system::error_code;
 using socket_t = asio::ip::tcp::socket;
 

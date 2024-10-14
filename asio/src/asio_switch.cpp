@@ -2,7 +2,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <boost/asio.hpp>
+#include "asio_common.hpp"
 #include <catch2/../catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <spdlog/spdlog.h>
@@ -23,8 +23,6 @@
     } while (false)
 
 #define CORO_END() }
-
-namespace asio = boost::asio;
 
 namespace type
 {

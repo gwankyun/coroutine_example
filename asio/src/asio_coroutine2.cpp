@@ -9,14 +9,12 @@
 #include <spdlog/spdlog.h>
 #define BOOST_LIB_DIAGNOSTIC
 #define BOOST_ALL_NO_LIB
-#include <boost/asio.hpp>
+#include "asio_common.hpp"
 #include <boost/coroutine2/all.hpp>
 #include <boost/system.hpp> // boost::system::error_code
 
 #include "on_exit.h"
 #include "time_count.h"
-
-namespace asio = boost::asio;
 
 namespace coro2 = boost::coroutines2;
 
