@@ -25,6 +25,8 @@ cmake_print_variables(CMAKE_SYSTEM_NAME)
 cmake_print_variables(CMAKE_SYSTEM_VERSION)
 cmake_print_variables(CMAKE_SYSTEM_PROCESSOR)
 
+cmake_print_variables(CMAKE_GENERATOR)
+
 set(msvc_definitions)
 
 if(WIN32)
@@ -58,7 +60,9 @@ if(POLICY CMP0167)
 endif()
 # find_package(Boost REQUIRED COMPONENTS context fiber) # 必需
 # check_package(Boost)
+
 find_package(boost_headers CONFIG REQUIRED)
+check_package(boost_headers)
 find_package(boost_context CONFIG REQUIRED)
 check_package(boost_context)
 find_package(boost_coroutine2 CONFIG REQUIRED)
@@ -69,11 +73,9 @@ check_package(boost_fiber)
 find_package(asio CONFIG REQUIRED)
 check_package(asio)
 
-# find_package(spdlog CONFIG) # 可選
 find_package(spdlog CONFIG REQUIRED)
 check_package(spdlog)
 
-# find_package(Catch2 3 REQUIRED)
 find_package(Catch2 CONFIG REQUIRED)
 check_package(Catch2)
 
@@ -83,7 +85,6 @@ if(use_cxx_23)
   set(cxx_std cxx_std_23)
 endif()
 
-# find_package(nlohmann_json REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 check_package(nlohmann_json)
 
@@ -164,23 +165,3 @@ target_sources(${coro_std} PRIVATE
   src/coro_std.cpp
 )
 target_link_libraries(${coro_std} PRIVATE ${common_required})
-
-# set(asio asio)
-# add_executable(${asio})
-# target_sources(${asio} PRIVATE
-#   src/asio.cpp
-# )
-# target_link_libraries(${asio} PRIVATE
-#   Boost::headers
-#   spdlog::spdlog
-# )
-
-# set(boost_coro2 boost_coro2)
-# add_executable(${boost_coro2})
-# target_sources(${boost_coro2} PRIVATE
-#   src/coro2.ixx src/coro2.cpp
-# )
-# target_link_libraries(${boost_coro2} PRIVATE
-#   ${common_required}
-#   ${coro2_required}
-# )

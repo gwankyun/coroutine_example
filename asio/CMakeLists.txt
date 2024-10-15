@@ -40,7 +40,7 @@ target_link_libraries(${asio_common} INTERFACE
   Catch2::Catch2
   asio::asio
 )
-target_include_directories(${asio_common} INTERFACE include)
+target_include_directories(${asio_common} INTERFACE include ${CMAKE_SOURCE_DIR}/include)
 
 set(context_common context_common)
 add_library(${context_common} INTERFACE)
