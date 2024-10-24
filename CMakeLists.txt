@@ -26,6 +26,7 @@ cmake_print_variables(CMAKE_SYSTEM_VERSION)
 cmake_print_variables(CMAKE_SYSTEM_PROCESSOR)
 
 cmake_print_variables(CMAKE_GENERATOR)
+cmake_print_variables(CMAKE_GENERATOR_INSTANCE)
 
 set(msvc_definitions)
 

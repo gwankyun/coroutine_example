@@ -115,3 +115,14 @@ target_link_libraries(${asio_std_coroutine} PRIVATE
   ${asio_lite}
 )
 target_compile_features(${asio_std_coroutine} PRIVATE cxx_std_20)
+
+set(asio_strand asio_strand)
+add_executable(${asio_strand})
+target_sources(${asio_strand} PRIVATE
+  src/asio_strand.cpp
+)
+target_link_libraries(${asio_strand} PRIVATE
+  ${asio_common}
+  ${asio_lite}
+)
+target_compile_features(${asio_strand} PRIVATE cxx_std_20)
