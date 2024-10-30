@@ -33,12 +33,14 @@ set(msvc_definitions)
 if(WIN32)
   get_WIN32_WINNT(_WIN32_WINNT)
   cmake_print_variables(_WIN32_WINNT)
+
   # Please define _WIN32_WINNT or _WIN32_WINDOWS appropriately.
   list(APPEND msvc_definitions "_WIN32_WINNT=${_WIN32_WINNT}")
 endif()
 
 # warning C4996
 option(disable_C4996 "" ON)
+
 if(disable_C4996)
   list(APPEND msvc_definitions "_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING")
 endif()
@@ -50,6 +52,7 @@ list(APPEND msvc_options "/W4" "/MP" "/Zc:__cplusplus" "/experimental:module")
 
 # warning LNK4099
 option(disable_LNK4099 "" ON)
+
 if(disable_LNK4099)
   list(APPEND msvc_options "/Z7")
 endif()
@@ -59,9 +62,9 @@ add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:${msvc_options}>")
 if(POLICY CMP0167)
   cmake_policy(SET CMP0167 NEW)
 endif()
+
 # find_package(Boost REQUIRED COMPONENTS context fiber) # 必需
 # check_package(Boost)
-
 find_package(boost_headers CONFIG REQUIRED)
 check_package(boost_headers)
 find_package(boost_context CONFIG REQUIRED)
@@ -70,6 +73,8 @@ find_package(boost_coroutine2 CONFIG REQUIRED)
 check_package(boost_coroutine2)
 find_package(boost_fiber CONFIG REQUIRED)
 check_package(boost_fiber)
+find_package(boost_scope REQUIRED CONFIG)
+check_package(boost_scope)
 
 find_package(asio CONFIG REQUIRED)
 check_package(asio)
@@ -82,6 +87,7 @@ check_package(Catch2)
 
 option(use_cxx_23 "" ON)
 set(cxx_std cxx_std_20)
+
 if(use_cxx_23)
   set(cxx_std cxx_std_23)
 endif()
@@ -125,11 +131,11 @@ set(server server)
 add_executable(${server})
 target_sources(${server} PRIVATE
   PRIVATE
-    src/server.cpp
+  src/server.cpp
   PRIVATE
   FILE_SET CXX_MODULES
-    FILES
-      src/server.ixx
+  FILES
+  src/server.ixx
 )
 target_link_libraries(${server} PRIVATE ${asio_required})
 
@@ -143,11 +149,11 @@ set(client client)
 add_executable(${client})
 target_sources(${client}
   PRIVATE
-    src/client.cpp
+  src/client.cpp
   PRIVATE
   FILE_SET CXX_MODULES
-    FILES
-      src/client.ixx
+  FILES
+  src/client.ixx
 )
 target_link_libraries(${client} PRIVATE ${asio_required})
 

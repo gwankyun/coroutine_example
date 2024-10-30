@@ -13,8 +13,9 @@
 #define BOOST_FIBERS_STATIC_LINK
 #include <boost/fiber/all.hpp>
 
-#include "on_exit.h"
 #include "time_count.h"
+
+#include <boost/scope/defer.hpp>
 
 namespace fibers = boost::fibers;
 namespace this_fiber = boost::this_fiber;
@@ -53,25 +54,27 @@ void handle(asio::io_context& _io_context, int _count, t::output& _output)
 
     t::buffered_channel<t::id> chan{2};
 
-    ON_EXIT(
-        [&]
+    BOOST_SCOPE_DEFER[&]
+    {
+        if (main)
         {
-            if (main)
-            {
-                f::join(*main);
-            }
+            f::join(*main);
+        }
 
-            for (auto& i : fiber_cont)
-            {
-                f::join(*(i.second));
-            }
-        });
+        for (auto& i : fiber_cont)
+        {
+            f::join(*(i.second));
+        }
+    };
 
     auto create_fiber = [&](t::id _id)
     {
         return [&, _id]
         {
-            ON_EXIT([&, _id] { chan.push(_id); });
+            BOOST_SCOPE_DEFER[&, _id]
+            {
+                chan.push(_id);
+            };
             std::string buffer = "abc";
             for (auto& v : buffer)
             {

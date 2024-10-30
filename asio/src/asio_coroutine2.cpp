@@ -13,8 +13,9 @@
 #include <boost/coroutine2/all.hpp>
 #include <boost/system.hpp> // boost::system::error_code
 
-#include "on_exit.h"
 #include "time_count.h"
+
+#include <boost/scope/scope_exit.hpp>
 
 namespace coro2 = boost::coroutines2;
 
@@ -51,7 +52,7 @@ void handle(asio::io_context& _io_context, int _count, t::output& _output)
             // 添加到喚醒隊列
             auto cb = [&, _id] { awake_cont.push(_id); };
             // 最後喚醒一次，讓管理協程得知已結束
-            ON_EXIT(cb);
+            auto on_exit = boost::scope::make_scope_exit(cb);
             std::string buffer = "abc";
             for (auto& v : buffer)
             {

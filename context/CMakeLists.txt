@@ -4,11 +4,11 @@ set(callcc_required callcc_required)
 add_library(${callcc_required} INTERFACE)
 target_sources(${callcc_required}
   INTERFACE
-    ${CMAKE_SOURCE_DIR}/include/connection.h
+  ${CMAKE_SOURCE_DIR}/include/connection.h
 )
 target_include_directories(${callcc_required}
   INTERFACE
-    ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/include
 )
 target_link_libraries(${callcc_required} INTERFACE
   Boost::headers
@@ -24,6 +24,6 @@ target_sources(${callcc_example} PRIVATE
 )
 target_link_libraries(${callcc_example}
   PRIVATE
-    ${callcc_required}
+  ${callcc_required}
 )
 set_target_properties(${callcc_example} PROPERTIES FOLDER ${callcc})

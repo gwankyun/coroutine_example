@@ -10,8 +10,9 @@
 #include "asio_common.hpp"
 #include <boost/context/continuation.hpp>
 
-#include "on_exit.h"
 #include "time_count.h"
+
+#include <boost/scope/scope_exit.hpp>
 
 namespace context = boost::context;
 
@@ -50,7 +51,7 @@ void handle(asio::io_context& _io_context, int _count, bool _manage_on_sub, t::o
         auto continuation = [&, _id](t::continuation&& _sink)
         {
             auto cb = [&, _id] { awake_cont.push(_id); };
-            ON_EXIT(cb);
+            auto on_exit = boost::scope::make_scope_exit(cb);
             std::string buffer = "abc";
             for (auto& v : buffer)
             {
