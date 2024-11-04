@@ -172,3 +172,10 @@ target_sources(${coro_std} PRIVATE
   src/coro_std.cpp
 )
 target_link_libraries(${coro_std} PRIVATE ${common_required})
+
+set(std_coro std_coro)
+add_executable(${std_coro})
+target_sources(${std_coro} PRIVATE
+  src/std_coro.cpp
+)
+target_link_libraries(${std_coro} PRIVATE ${common_required} asio::asio)
