@@ -128,3 +128,16 @@ target_link_libraries(${asio_strand} PRIVATE
   ${asio_lite}
 )
 target_compile_features(${asio_strand} PRIVATE cxx_std_20)
+
+set(asio_cobalt asio_cobalt)
+add_executable(${asio_cobalt})
+target_sources(${asio_cobalt} PRIVATE
+  src/asio_cobalt.cpp
+)
+target_link_libraries(${asio_cobalt} PRIVATE
+  Boost::cobalt
+  spdlog::spdlog
+  Boost::headers
+  asio::asio
+)
+target_compile_features(${asio_cobalt} PRIVATE cxx_std_20)

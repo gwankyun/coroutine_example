@@ -1,5 +1,5 @@
 ﻿# cmake最低版本
-cmake_minimum_required(VERSION 3.30.0)
+cmake_minimum_required(VERSION 3.31.0)
 
 # 項目名
 set(project coroutine_example)
@@ -75,6 +75,8 @@ find_package(boost_fiber CONFIG REQUIRED)
 check_package(boost_fiber)
 find_package(boost_scope REQUIRED CONFIG)
 check_package(boost_scope)
+find_package(boost_cobalt REQUIRED CONFIG)
+check_package(boost_cobalt)
 
 find_package(asio CONFIG REQUIRED)
 check_package(asio)
