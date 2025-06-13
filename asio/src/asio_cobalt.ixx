@@ -1,11 +1,25 @@
-﻿#include <boost/cobalt/main.hpp>
+﻿module;
+#include "use_module.h"
+
+#include "spdlog.h"
+
+#include <boost/cobalt/main.hpp>
 #include <boost/cobalt/op.hpp>
-#include <spdlog/spdlog.h>
 #include <boost/asio/steady_timer.hpp>
+
+export module asio_cobalt;
+
+#if USE_STD_MODULE
+import std;
+#endif
+
+#if USE_THIRD_MODULE
+import spdlog;
+#endif
 
 using namespace boost;
 
-cobalt::main co_main(int argc, char* argv[])
+export cobalt::main co_main(int argc, char* argv[])
 {
     std::string log_format{"[%C-%m-%d %T.%e] [%^%L%$] [%-20!!:%4#] %v"};
     spdlog::set_pattern(log_format);

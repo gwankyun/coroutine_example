@@ -1,0 +1,15 @@
+﻿set(CMAKE_FOLDER module)
+
+add_subdirectory(catch2)
+
+add_subdirectory(spdlog)
+
+add_subdirectory(asio)
+
+add_executable(asio_module_example)
+target_sources(asio_module_example
+  PRIVATE FILE_SET CXX_MODULES FILES
+    src/asio_module_example.ixx
+)
+target_link_libraries(asio_module_example PUBLIC asio::module)
+target_compile_features(asio_module_example PRIVATE cxx_std_23)

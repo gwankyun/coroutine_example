@@ -1,10 +1,16 @@
-﻿#include <memory>
-#include <string>
-#include <unordered_map>
+﻿module;
+#include "use_module.h"
 
-#include <catch2/../catch2/catch_session.hpp>
-#include <catch2/catch_test_macros.hpp>
-#include <spdlog/spdlog.h>
+#if !USE_STD_MODULE
+#  include <memory>
+#  include <string>
+#  include <unordered_map>
+#endif
+
+#include "catch2.h"
+
+#include "spdlog.h"
+
 #define BOOST_LIB_DIAGNOSTIC
 #define BOOST_ALL_NO_LIB
 #include "asio_common.hpp"
@@ -16,6 +22,17 @@
 #include "time_count.h"
 
 #include <boost/scope/defer.hpp>
+
+export module asio_fiber;
+
+#if USE_STD_MODULE
+import std;
+#endif
+
+#if USE_THIRD_MODULE
+import catch2.compat;
+import spdlog;
+#endif
 
 namespace fibers = boost::fibers;
 namespace this_fiber = boost::this_fiber;
@@ -117,7 +134,8 @@ void handle(asio::io_context& _io_context, int _count, t::output& _output)
                 }
                 this_fiber::yield();
             }
-        });
+        }
+    );
 }
 
 TEST_CASE("asio_context_fiber", "[context_fiber]")
@@ -135,7 +153,7 @@ TEST_CASE("asio_context_fiber", "[context_fiber]")
     }
 }
 
-int main(int _argc, char* _argv[])
+export int main(int _argc, char* _argv[])
 {
     std::string log_format{"[%C-%m-%d %T.%e] [%^%L%$] [%-20!!:%4#] %v"};
     spdlog::set_pattern(log_format);

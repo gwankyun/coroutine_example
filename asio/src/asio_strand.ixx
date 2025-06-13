@@ -1,19 +1,38 @@
-﻿#include <atomic>
-#include <chrono>
-#include <functional>
-#include <mutex>
-#include <queue>
-#include <string>
-#include <thread>
-#include <tuple>
-#include <vector>
+﻿module;
+#include "use_module.h"
 
-using namespace std::literals::chrono_literals;
+#if !USE_STD_MODULE
+#  include <atomic>
+#  include <chrono>
+#  include <functional>
+#  include <mutex>
+#  include <queue>
+#  include <string>
+#  include <thread>
+#  include <tuple>
+#  include <vector>
+#endif
+
+#include "catch2.h"
+
+#include "spdlog.h"
 
 #include <asio.hpp>
-#include <spdlog/spdlog.h>
 
 #include "task.hpp"
+
+export module asio_strand;
+
+#if USE_STD_MODULE
+import std;
+#endif
+
+#if USE_THIRD_MODULE
+import catch2.compat;
+import spdlog;
+#endif
+
+using namespace std::literals::chrono_literals;
 
 std::mutex g_mutex;
 
@@ -52,7 +71,8 @@ type::task run(asio::io_context& _io_context, std::string _name)
                     std::this_thread::sleep_for(100ms);
                     SPDLOG_INFO("name: {} i: {} sleep", _name, i);
                     coroutine.resume();
-                });
+                }
+            );
         }
         co_await async_post_resume(coroutine, _io_context, [] {});
     }
@@ -74,7 +94,7 @@ type::task run_all(asio::io_context& _io_context)
     co_return;
 }
 
-int main(int _argc, char* _argv[])
+export int main(int _argc, char* _argv[])
 {
     std::string log_format{"[%C-%m-%d %T.%e] [%^%L%$] [t:%6t] [%-10!!:%4#] %v"};
     spdlog::set_pattern(log_format);
@@ -85,7 +105,6 @@ int main(int _argc, char* _argv[])
     asio::io_context::strand strand_2(io_context);
 
     auto concurrency = std::thread::hardware_concurrency();
-
 
     std::jthread task_thread(
         [&]
@@ -116,7 +135,8 @@ int main(int _argc, char* _argv[])
                 //     return;
                 // }
             }
-        });
+        }
+    );
 
     run_all(io_context);
 
@@ -126,7 +146,6 @@ int main(int _argc, char* _argv[])
     {
         thread_cont.emplace_back([&] { io_context.run(); });
     }
-
 
     return 0;
 }

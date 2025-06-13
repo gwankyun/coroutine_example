@@ -1,21 +1,24 @@
-﻿#include <chrono>
-#include <concepts>   // std::invocable
-#include <coroutine>  // std::coroutine_handle std::suspend_never
-#include <functional> // std::function
-#include <queue>
-#include <string>
-#include <thread>
-#include <unordered_map>
-#include <vector>
+﻿module;
+#include "use_module.h"
 
-using namespace std::literals::chrono_literals;
+#if !USE_STD_MODULE
+#  include <chrono>
+#  include <concepts>   // std::invocable
+#  include <coroutine>  // std::coroutine_handle std::suspend_never
+#  include <cstdlib>    // std::exit
+#  include <functional> // std::function
+#  include <queue>
+#  include <string>
+#  include <thread>
+#  include <unordered_map>
+#  include <vector>
+#endif
 
-#include <cstdlib> // std::exit
+#include "catch2.h"
+
+#include "spdlog.h"
 
 #include "asio_common.hpp"
-#include <catch2/../catch2/catch_session.hpp>
-#include <catch2/catch_test_macros.hpp>
-#include <spdlog/spdlog.h>
 
 #include "asio_lite.h"
 #include "time_count.h"
@@ -23,6 +26,19 @@ using namespace std::literals::chrono_literals;
 // namespace asio = lite::asio;
 
 #include "task.hpp"
+
+export module asio_std_coroutine;
+
+#if USE_STD_MODULE
+import std;
+#endif
+
+#if USE_THIRD_MODULE
+import catch2.compat;
+import spdlog;
+#endif
+
+using namespace std::literals::chrono_literals;
 
 namespace type
 {
@@ -51,12 +67,14 @@ t::task handle(asio::io_context& _io_context, t::id _id, t::output& _output)
     std::string buffer = "abc";
     for (auto& v : buffer)
     {
-        co_await async_post(coroutine, _io_context,
-                            [&]
-                            {
-                                _output[_id] += v;
-                                SPDLOG_INFO("id: {} value: {}", _id, v);
-                            });
+        co_await async_post(
+            coroutine, _io_context,
+            [&]
+            {
+                _output[_id] += v;
+                SPDLOG_INFO("id: {} value: {}", _id, v);
+            }
+        );
     }
 }
 
@@ -86,7 +104,7 @@ TEST_CASE("asio_context_fiber", "[context_fiber]")
     }
 }
 
-int main(int _argc, char* _argv[])
+export int main(int _argc, char* _argv[])
 {
     std::string log_format{"[%C-%m-%d %T.%e] [%^%L%$] [%-20!!:%4#] %v"};
     spdlog::set_pattern(log_format);

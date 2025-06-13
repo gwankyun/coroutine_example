@@ -1,13 +1,30 @@
-﻿#include <string>
-#include <unordered_map>
-#include <vector>
+﻿module;
+#include "use_module.h"
+
+#if !USE_STD_MODULE
+#  include <string>
+#  include <unordered_map>
+#  include <vector>
+#endif
+
+#include "catch2.h"
+
+#include "spdlog.h"
 
 #include "asio_common.hpp"
-#include <catch2/../catch2/catch_session.hpp>
-#include <catch2/catch_test_macros.hpp>
-#include <spdlog/spdlog.h>
 
 #include "time_count.h"
+
+export module asio_switch;
+
+#if USE_STD_MODULE
+import std;
+#endif
+
+#if USE_THIRD_MODULE
+import catch2.compat;
+import spdlog;
+#endif
 
 #define CORO_BEGIN(_state) \
     switch (_state) \
@@ -105,7 +122,7 @@ TEST_CASE("asio_switch", "[switch]")
     }
 }
 
-int main(int _argc, char* _argv[])
+export int main(int _argc, char* _argv[])
 {
     std::string log_format{"[%C-%m-%d %T.%e] [%^%L%$] [%-20!!:%4#] %v"};
     spdlog::set_pattern(log_format);

@@ -41,6 +41,7 @@ target_link_libraries(${asio_common} INTERFACE
   asio::asio
 )
 target_include_directories(${asio_common} INTERFACE include ${CMAKE_SOURCE_DIR}/include)
+target_compile_features(${asio_common} INTERFACE cxx_std_23)
 
 set(context_common context_common)
 add_library(${context_common} INTERFACE)
@@ -51,93 +52,141 @@ target_link_libraries(${context_common} INTERFACE
   Boost::scope
 )
 
-set(asio_callback asio_callback)
-add_executable(${asio_callback})
-target_sources(${asio_callback} PRIVATE
-  src/asio_callback.cpp
+option(USE_STD_MODULE "使用標準庫模塊" ON)
+option(USE_THIRD_MODULE "使用第三方庫模塊" ON)
+option(USE_ASIO_STANDALONE "使用非boost版asio" ON)
+option(USE_ASIO_MODULE "使用asio模塊" ON)
+
+add_library(asio_interface INTERFACE)
+target_compile_definitions(asio_interface
+  INTERFACE
+    USE_ASIO_STANDALONE=$<BOOL:${USE_ASIO_STANDALONE}>
+    USE_ASIO_MODULE=$<BOOL:${USE_ASIO_MODULE}>
 )
-target_link_libraries(${asio_callback} PRIVATE
-  ${asio_common}
+target_link_libraries(asio_interface
+  INTERFACE
+    $<IF:$<BOOL:${USE_ASIO_STANDALONE}>,asio::asio,Boost::asio>
+    $<$<BOOL:${USE_ASIO_MODULE}>:asio::module>
 )
 
-set(asio_switch asio_switch)
-add_executable(${asio_switch})
-target_sources(${asio_switch} PRIVATE
-  src/asio_switch.cpp
+add_library(third_module INTERFACE)
+target_compile_definitions(third_module
+  INTERFACE
+    USE_STD_MODULE=$<BOOL:${USE_STD_MODULE}>
+    USE_THIRD_MODULE=$<BOOL:${USE_THIRD_MODULE}>
 )
-target_link_libraries(${asio_switch} PRIVATE
-  ${asio_common}
-)
-
-set(asio_coroutine2 asio_coroutine2)
-add_executable(${asio_coroutine2})
-target_sources(${asio_coroutine2} PRIVATE
-  src/asio_coroutine2.cpp
-)
-target_link_libraries(${asio_coroutine2} PRIVATE
-  ${context_common}
+target_link_libraries(third_module
+  INTERFACE
+    Catch2::module
+    spdlog::module
 )
 
-set(asio_continuatioin asio_continuatioin)
-add_executable(${asio_continuatioin})
-target_sources(${asio_continuatioin} PRIVATE
-  src/asio_continuatioin.cpp
+add_library(cxx_std INTERFACE)
+target_compile_features(cxx_std INTERFACE cxx_std_23)
+
+add_executable(asio_callback)
+target_sources(asio_callback
+  PRIVATE FILE_SET CXX_MODULES FILES
+    src/asio_callback.ixx
 )
-target_link_libraries(${asio_continuatioin} PRIVATE
-  ${context_common}
+target_link_libraries(asio_callback
+  PRIVATE
+    third_module
+    asio_interface
+    # asio::module;
+    cxx_std
 )
 
-set(asio_context_fiber asio_context_fiber)
-add_executable(${asio_context_fiber})
-target_sources(${asio_context_fiber} PRIVATE
-  src/asio_context_fiber.cpp
+add_executable(asio_switch)
+target_sources(asio_switch PRIVATE
+  PRIVATE FILE_SET CXX_MODULES FILES
+    src/asio_switch.ixx
 )
-target_link_libraries(${asio_context_fiber} PRIVATE
-  ${context_common}
+target_link_libraries(asio_switch
+  PRIVATE
+    ${asio_common}
+    third_module
 )
 
-set(asio_fiber asio_fiber)
-add_executable(${asio_fiber})
-target_sources(${asio_fiber} PRIVATE
-  src/asio_fiber.cpp
+add_executable(asio_coroutine2)
+target_sources(asio_coroutine2 PRIVATE
+  PRIVATE FILE_SET CXX_MODULES FILES
+    src/asio_coroutine2.ixx
 )
-target_link_libraries(${asio_fiber} PRIVATE
+target_link_libraries(asio_coroutine2
+  PRIVATE
+    ${context_common}
+    third_module
+)
+
+add_executable(asio_continuatioin)
+target_sources(asio_continuatioin PRIVATE
+  PRIVATE FILE_SET CXX_MODULES FILES
+    src/asio_continuatioin.ixx
+)
+target_link_libraries(asio_continuatioin
+  PRIVATE
+    ${context_common}
+    third_module
+)
+
+add_executable(asio_context_fiber)
+target_sources(asio_context_fiber PRIVATE
+  PRIVATE FILE_SET CXX_MODULES FILES
+    src/asio_context_fiber.ixx
+)
+target_link_libraries(asio_context_fiber
+  PRIVATE
+    ${context_common}
+    third_module
+)
+
+add_executable(asio_fiber)
+target_sources(asio_fiber PRIVATE
+  PRIVATE FILE_SET CXX_MODULES FILES
+    src/asio_fiber.ixx
+)
+target_link_libraries(asio_fiber PRIVATE
   ${context_common}
   Boost::fiber
+  third_module
 )
-target_compile_features(${asio_fiber} PRIVATE cxx_std_20)
+target_compile_features(asio_fiber PRIVATE cxx_std_23)
 
-set(asio_std_coroutine asio_std_coroutine)
-add_executable(${asio_std_coroutine})
-target_sources(${asio_std_coroutine} PRIVATE
-  src/asio_std_coroutine.cpp
+add_executable(asio_std_coroutine)
+target_sources(asio_std_coroutine PRIVATE
+  PRIVATE FILE_SET CXX_MODULES FILES
+    src/asio_std_coroutine.ixx
 )
-target_link_libraries(${asio_std_coroutine} PRIVATE
+target_link_libraries(asio_std_coroutine PRIVATE
   ${asio_common}
   ${asio_lite}
+  third_module
 )
-target_compile_features(${asio_std_coroutine} PRIVATE cxx_std_20)
+target_compile_features(asio_std_coroutine PRIVATE cxx_std_23)
 
-set(asio_strand asio_strand)
-add_executable(${asio_strand})
-target_sources(${asio_strand} PRIVATE
-  src/asio_strand.cpp
+add_executable(asio_strand)
+target_sources(asio_strand PRIVATE
+  PRIVATE FILE_SET CXX_MODULES FILES
+    src/asio_strand.ixx
 )
-target_link_libraries(${asio_strand} PRIVATE
+target_link_libraries(asio_strand PRIVATE
   ${asio_common}
   ${asio_lite}
+  third_module
 )
-target_compile_features(${asio_strand} PRIVATE cxx_std_20)
+target_compile_features(asio_strand PRIVATE cxx_std_23)
 
-set(asio_cobalt asio_cobalt)
-add_executable(${asio_cobalt})
-target_sources(${asio_cobalt} PRIVATE
-  src/asio_cobalt.cpp
+add_executable(asio_cobalt)
+target_sources(asio_cobalt PRIVATE
+  PRIVATE FILE_SET CXX_MODULES FILES
+    src/asio_cobalt.ixx
 )
-target_link_libraries(${asio_cobalt} PRIVATE
+target_link_libraries(asio_cobalt PRIVATE
   Boost::cobalt
   spdlog::spdlog
   Boost::headers
   asio::asio
+  third_module
 )
-target_compile_features(${asio_cobalt} PRIVATE cxx_std_20)
+target_compile_features(asio_cobalt PRIVATE cxx_std_23)

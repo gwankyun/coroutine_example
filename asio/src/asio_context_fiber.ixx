@@ -1,12 +1,18 @@
-﻿#include <chrono>
-#include <queue>
-#include <string>
-#include <unordered_map>
-#include <vector>
+﻿module;
+#include "use_module.h"
 
-#include <catch2/../catch2/catch_session.hpp>
-#include <catch2/catch_test_macros.hpp>
-#include <spdlog/spdlog.h>
+#if !USE_STD_MODULE
+#  include <chrono>
+#  include <queue>
+#  include <string>
+#  include <unordered_map>
+#  include <vector>
+#endif
+
+#include "catch2.h"
+
+#include "spdlog.h"
+
 #define BOOST_LIB_DIAGNOSTIC
 #define BOOST_ALL_NO_LIB
 #include "asio_common.hpp"
@@ -15,6 +21,17 @@
 #include "time_count.h"
 
 #include <boost/scope/scope_exit.hpp>
+
+export module asio_context_fiber;
+
+#if USE_STD_MODULE
+import std;
+#endif
+
+#if USE_THIRD_MODULE
+import catch2.compat;
+import spdlog;
+#endif
 
 namespace context = boost::context;
 
@@ -120,7 +137,8 @@ void handle(asio::io_context& _io_context, int _count, bool _manage_on_sub, t::o
                 SPDLOG_INFO("enter main");
                 main_fiber();
                 return std::move(_sink);
-            });
+            }
+        );
 
         SPDLOG_INFO("resume main");
         f::resume(*main);
@@ -146,7 +164,7 @@ TEST_CASE("asio_context_fiber", "[context_fiber]")
     }
 }
 
-int main(int _argc, char* _argv[])
+export int main(int _argc, char* _argv[])
 {
     std::string log_format{"[%C-%m-%d %T.%e] [%^%L%$] [%-20!!:%4#] %v"};
     spdlog::set_pattern(log_format);

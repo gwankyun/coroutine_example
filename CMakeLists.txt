@@ -1,5 +1,5 @@
 ﻿# cmake最低版本
-cmake_minimum_required(VERSION 3.31.0)
+cmake_minimum_required(VERSION 3.28...4.0)
 
 # 項目名
 set(project coroutine_example)
@@ -50,6 +50,9 @@ add_compile_definitions("$<$<CXX_COMPILER_ID:MSVC>:${msvc_definitions}>")
 set(msvc_options)
 list(APPEND msvc_options "/W4" "/MP" "/Zc:__cplusplus" "/experimental:module")
 
+# 支持源碼UTF-8
+list(APPEND msvc_options "/utf-8")
+
 # warning LNK4099
 option(disable_LNK4099 "" ON)
 
@@ -77,6 +80,8 @@ find_package(boost_scope REQUIRED CONFIG)
 check_package(boost_scope)
 find_package(boost_cobalt REQUIRED CONFIG)
 check_package(boost_cobalt)
+find_package(boost_asio CONFIG REQUIRED)
+check_package(boost_asio)
 
 find_package(asio CONFIG REQUIRED)
 check_package(asio)
@@ -166,6 +171,7 @@ target_sources(${main} PRIVATE
 )
 target_link_libraries(${main} PRIVATE ${common_required} Catch2::Catch2)
 
+add_subdirectory(module)
 add_subdirectory(asio)
 
 set(coro_std coro_std)

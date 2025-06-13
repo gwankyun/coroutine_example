@@ -2,7 +2,7 @@
 Language:        Cpp
 BasedOnStyle:  Microsoft
 AccessModifierOffset: -2
-AlignAfterOpenBracket: Align
+AlignAfterOpenBracket: BlockIndent
 AlignArrayOfStructures: None
 AlignConsecutiveAssignments:
   Enabled:         false
@@ -166,7 +166,7 @@ PenaltyExcessCharacter: 1000000
 PenaltyIndentedWhitespace: 0
 PenaltyReturnTypeOnItsOwnLine: 1000
 PointerAlignment: Left
-PPIndentWidth:   -1
+PPIndentWidth:   2
 QualifierAlignment: Leave
 ReferenceAlignment: Pointer
 ReflowComments:  true
