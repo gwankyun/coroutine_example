@@ -14,6 +14,8 @@ add_subdirectory(boost.context)
 
 add_subdirectory(boost.coroutine2)
 
+add_subdirectory(boost.fiber)
+
 add_executable(asio_module_example)
 target_sources(asio_module_example
   PRIVATE FILE_SET CXX_MODULES FILES

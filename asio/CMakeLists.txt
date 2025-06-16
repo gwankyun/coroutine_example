@@ -60,6 +60,7 @@ option(USE_BOOST_ASIO_MODULE "使用boost.asio模塊" ON)
 option(USE_BOOST_SCOPE_MODULE "使用boost.scope模塊" ON)
 option(USE_BOOST_COROUTINE2_MODULE "使用boost.coroutine2模塊" ON)
 option(USE_BOOST_CONTEXT_MODULE "使用boost.context模塊" ON)
+option(USE_BOOST_FIBER_MODULE "使用boost.fiber模塊" OFF)
 option(USE_CATCH2_MODULE "使用catch2模塊" ON)
 option(USE_SPDLOG_MODULE "使用spdlog模塊" ON)
 
@@ -176,6 +177,18 @@ target_link_libraries(boost_coroutine2_module_interface
 )
 add_library(coroutine2_interface ALIAS boost_coroutine2_module_interface)
 
+add_library(boost_fiber_module_interface INTERFACE)
+target_compile_definitions(boost_fiber_module_interface
+  INTERFACE
+    USE_BOOST_FIBER_MODULE=$<BOOL:${USE_BOOST_FIBER_MODULE}>
+)
+target_link_libraries(boost_fiber_module_interface
+  INTERFACE
+    $<IF:$<BOOL:${USE_BOOST_FIBER_MODULE}>,Boost::fiber::module,Boost::fiber>
+)
+add_library(fiber_interface ALIAS boost_fiber_module_interface)
+
+
 add_executable(asio_coroutine2)
 target_sources(asio_coroutine2
   PRIVATE FILE_SET CXX_MODULES FILES
@@ -234,13 +247,12 @@ target_sources(asio_fiber PRIVATE
     src/asio_fiber.ixx
 )
 target_link_libraries(asio_fiber PRIVATE
-  ${context_common}
-  Boost::fiber
-  # third_module
   catch2_interface
   spdlog_interface
   asio_interface
   scope_interface
+  fiber_interface
+  cxx_std_interface
 )
 target_compile_features(asio_fiber PRIVATE cxx_std_23)
 

@@ -19,11 +19,13 @@
 #  include <boost/asio.hpp>
 #endif
 
+#if !USE_BOOST_FIBER_MODULE
 // https://github.com/boostorg/fiber/issues/314
-#define BOOST_FIBERS_STATIC_LINK
-#include <boost/fiber/all.hpp>
+#  define BOOST_FIBERS_STATIC_LINK
+#  include <boost/fiber/all.hpp>
+#endif
 
-#include "time_count.h"
+//#include "time_count.h"
 
 #if !USE_BOOST_SCOPE_MODULE
 #  include <boost/scope/defer.hpp>
@@ -52,6 +54,10 @@ import spdlog;
 
 #if USE_BOOST_SCOPE_MODULE
 import boost.scope;
+#endif
+
+#if USE_BOOST_FIBER_MODULE
+import boost.fiber;
 #endif
 
 namespace fibers = boost::fibers;
