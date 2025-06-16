@@ -11,9 +11,13 @@
 
 #include "spdlog.h"
 
-#include "asio_common.hpp"
+#if !USE_BOOST_ASIO_MODULE
+#  include <boost/asio.hpp>
+#endif
 
-#include "time_count.h"
+// #include "asio_common.hpp"
+
+//#include "time_count.h"
 
 export module asio_switch;
 
@@ -21,9 +25,17 @@ export module asio_switch;
 import std;
 #endif
 
-#if USE_THIRD_MODULE
+#if USE_CATCH2_MODULE
 import catch2.compat;
+#endif
+
+#if USE_SPDLOG_MODULE
 import spdlog;
+#endif
+
+#if USE_BOOST_ASIO_MODULE
+import boost.asio;
+namespace asio = boost_asio;
 #endif
 
 #define CORO_BEGIN(_state) \

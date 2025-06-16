@@ -1,6 +1,6 @@
 #pragma once
 
-#if !USE_THIRD_MODULE
+#if !USE_SPDLOG_MODULE
 #  include <spdlog/spdlog.h>
 #else
 #  include <spdlog/compat.h>

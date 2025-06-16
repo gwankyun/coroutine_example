@@ -11,14 +11,22 @@
 
 #include "spdlog.h"
 
-#define BOOST_LIB_DIAGNOSTIC
-#define BOOST_ALL_NO_LIB
-#include "asio_common.hpp"
-#include <boost/context/continuation.hpp>
+// #define BOOST_LIB_DIAGNOSTIC
+// #define BOOST_ALL_NO_LIB
 
-#include "time_count.h"
+#if !USE_BOOST_ASIO_MODULE
+#  include <boost/asio.hpp>
+#endif
 
-#include <boost/scope/scope_exit.hpp>
+#if !USE_BOOST_CONTEXT_MODULE
+#  include <boost/context/continuation.hpp>
+#endif
+
+// #include "time_count.h"
+
+#if !USE_BOOST_SCOPE_MODULE
+#  include <boost/scope/scope_exit.hpp>
+#endif
 
 export module asio_continuatioin;
 
@@ -26,9 +34,25 @@ export module asio_continuatioin;
 import std;
 #endif
 
-#if USE_THIRD_MODULE
+#if USE_CATCH2_MODULE
 import catch2.compat;
+#endif
+
+#if USE_SPDLOG_MODULE
 import spdlog;
+#endif
+
+#if USE_BOOST_ASIO_MODULE
+import boost.asio;
+namespace asio = boost_asio;
+#endif
+
+#if USE_BOOST_SCOPE_MODULE
+import boost.scope;
+#endif
+
+#if USE_BOOST_CONTEXT_MODULE
+import boost.context;
 #endif
 
 namespace context = boost::context;

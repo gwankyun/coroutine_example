@@ -1,4 +1,5 @@
 ﻿module;
+#define WIN32_LEAN_AND_MEAN
 #include "use_module.h"
 
 #if !USE_STD_MODULE
@@ -11,9 +12,12 @@
 
 #include "spdlog.h"
 
-#define BOOST_LIB_DIAGNOSTIC
-#define BOOST_ALL_NO_LIB
-#include "asio_common.hpp"
+//#define BOOST_LIB_DIAGNOSTIC
+//#define BOOST_ALL_NO_LIB
+
+#if !USE_BOOST_ASIO_MODULE
+#  include <boost/asio.hpp>
+#endif
 
 // https://github.com/boostorg/fiber/issues/314
 #define BOOST_FIBERS_STATIC_LINK
@@ -21,7 +25,11 @@
 
 #include "time_count.h"
 
-#include <boost/scope/defer.hpp>
+#if !USE_BOOST_SCOPE_MODULE
+#  include <boost/scope/defer.hpp>
+#else
+#  include <boost.scope/macro.h>
+#endif
 
 export module asio_fiber;
 
@@ -29,9 +37,21 @@ export module asio_fiber;
 import std;
 #endif
 
-#if USE_THIRD_MODULE
+#if USE_BOOST_ASIO_MODULE
+import boost.asio;
+namespace asio = boost_asio;
+#endif
+
+#if USE_CATCH2_MODULE
 import catch2.compat;
+#endif
+
+#if USE_SPDLOG_MODULE
 import spdlog;
+#endif
+
+#if USE_BOOST_SCOPE_MODULE
+import boost.scope;
 #endif
 
 namespace fibers = boost::fibers;

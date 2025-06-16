@@ -1,6 +1,6 @@
 #pragma once
 
-#if !USE_THIRD_MODULE
+#if !USE_CATCH2_MODULE
 #  include <catch2/../catch2/catch_session.hpp>
 #  include <catch2/catch_test_macros.hpp>
 #else

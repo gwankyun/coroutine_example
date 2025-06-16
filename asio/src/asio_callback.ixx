@@ -12,12 +12,16 @@
 
 #include "spdlog.h"
 
-#if !USE_ASIO_MODULE
-#  if USE_ASIO_STANDALONE
-#    include <asio.hpp>
-#  else
-#    include <boost/asio.hpp>
-#  endif
+// #if !USE_ASIO_MODULE
+// #  if USE_ASIO_STANDALONE
+// #    include <asio.hpp>
+// #  else
+// #    include <boost/asio.hpp>
+// #  endif
+// #endif
+
+#if !USE_BOOST_ASIO_MODULE
+#  include <boost/asio.hpp>
 #endif
 
 // #include "time_count.h"
@@ -28,21 +32,25 @@ export module asio_callback;
 import std;
 #endif
 
-#if USE_THIRD_MODULE
+#if USE_CATCH2_MODULE
 import catch2.compat;
+#endif
+
+#if USE_SPDLOG_MODULE
 import spdlog;
 #endif
 
-#if USE_ASIO_MODULE
-import asio;
+#if USE_BOOST_ASIO_MODULE
+import boost.asio;
+namespace asio = boost_asio;
 #endif
 
-#if !USE_ASIO_MODULE
-#  if !USE_ASIO_STANDALONE
-namespace asio = boost::asio;
-#  endif
-namespace asio_module = asio;
-#endif
+// #if !USE_ASIO_MODULE
+// #  if !USE_ASIO_STANDALONE
+// namespace asio = boost::asio;
+// #  endif
+// namespace asio_module = asio;
+// #endif
 
 namespace type
 {
@@ -52,13 +60,6 @@ namespace type
 
 namespace t = type;
 
-namespace detail
-{
-    namespace asio = asio_module;
-}
-
-namespace d = detail;
-
 struct Data
 {
     t::id id;
@@ -66,7 +67,7 @@ struct Data
     std::size_t offset = 0;
 };
 
-void handle(d::asio::io_context& _io_context, std::shared_ptr<Data> _data, t::output& _output)
+void handle(asio::io_context& _io_context, std::shared_ptr<Data> _data, t::output& _output)
 {
     auto& data = *_data;
     auto& value = data.value;
@@ -80,11 +81,11 @@ void handle(d::asio::io_context& _io_context, std::shared_ptr<Data> _data, t::ou
         SPDLOG_INFO("id: {} value: {}", id, v);
         offset++;
         auto handle_next = [&, _data] { handle(_io_context, _data, _output); };
-        d::asio::post(_io_context, handle_next);
+        asio::post(_io_context, handle_next);
     }
 }
 
-void accept_handle(d::asio::io_context& _io_context, int _count, int _id, t::output& _output)
+void accept_handle(asio::io_context& _io_context, int _count, int _id, t::output& _output)
 {
     if (_id < _count)
     {
@@ -93,10 +94,10 @@ void accept_handle(d::asio::io_context& _io_context, int _count, int _id, t::out
         data->id = _id;
 
         auto handle_data = [&, data] { handle(_io_context, data, _output); };
-        d::asio::post(_io_context, handle_data);
+        asio::post(_io_context, handle_data);
 
         auto accept_next = [&, _count, _id] { accept_handle(_io_context, _count, _id + 1, _output); };
-        d::asio::post(_io_context, accept_next);
+        asio::post(_io_context, accept_next);
     }
 }
 
@@ -105,8 +106,8 @@ TEST_CASE("asio_callback", "[callback]")
     auto count = 3u;
     t::output output(count);
 
-    d::asio::io_context io_context;
-    d::asio::post(io_context, [&] { accept_handle(io_context, count, 0, output); });
+    asio::io_context io_context;
+    asio::post(io_context, [&] { accept_handle(io_context, count, 0, output); });
     io_context.run();
 
     for (auto& i : output)

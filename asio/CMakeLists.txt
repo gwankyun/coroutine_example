@@ -54,19 +54,46 @@ target_link_libraries(${context_common} INTERFACE
 
 option(USE_STD_MODULE "使用標準庫模塊" ON)
 option(USE_THIRD_MODULE "使用第三方庫模塊" ON)
-option(USE_ASIO_STANDALONE "使用非boost版asio" ON)
-option(USE_ASIO_MODULE "使用asio模塊" ON)
+option(USE_ASIO_STANDALONE "使用非boost版asio" OFF)
+option(USE_ASIO_MODULE "使用asio模塊" OFF)
+option(USE_BOOST_ASIO_MODULE "使用boost.asio模塊" ON)
+option(USE_BOOST_SCOPE_MODULE "使用boost.scope模塊" ON)
+option(USE_BOOST_COROUTINE2_MODULE "使用boost.coroutine2模塊" ON)
+option(USE_BOOST_CONTEXT_MODULE "使用boost.context模塊" ON)
+option(USE_CATCH2_MODULE "使用catch2模塊" ON)
+option(USE_SPDLOG_MODULE "使用spdlog模塊" ON)
+
+add_library(catch2_interface INTERFACE)
+target_compile_definitions(catch2_interface
+  INTERFACE
+    USE_CATCH2_MODULE=$<BOOL:${USE_CATCH2_MODULE}>
+)
+target_link_libraries(catch2_interface
+  INTERFACE
+    $<IF:$<BOOL:${USE_CATCH2_MODULE}>,Catch2::module,Catch2::Catch2>
+)
+
+add_library(spdlog_interface INTERFACE)
+target_compile_definitions(spdlog_interface
+  INTERFACE
+    USE_SPDLOG_MODULE=$<BOOL:${USE_SPDLOG_MODULE}>
+)
+target_link_libraries(spdlog_interface
+  INTERFACE
+    $<IF:$<BOOL:${USE_SPDLOG_MODULE}>,spdlog::module,spdlog::spdlog>
+)
 
 add_library(asio_interface INTERFACE)
 target_compile_definitions(asio_interface
   INTERFACE
-    USE_ASIO_STANDALONE=$<BOOL:${USE_ASIO_STANDALONE}>
-    USE_ASIO_MODULE=$<BOOL:${USE_ASIO_MODULE}>
+    # USE_ASIO_STANDALONE=$<BOOL:${USE_ASIO_STANDALONE}>
+    USE_BOOST_ASIO_MODULE=$<BOOL:${USE_BOOST_ASIO_MODULE}>
 )
 target_link_libraries(asio_interface
   INTERFACE
-    $<IF:$<BOOL:${USE_ASIO_STANDALONE}>,asio::asio,Boost::asio>
-    $<$<BOOL:${USE_ASIO_MODULE}>:asio::module>
+    # $<IF:$<BOOL:${USE_ASIO_STANDALONE}>,asio::asio,Boost::asio>
+    Boost::asio Boost::headers
+    $<$<BOOL:${USE_BOOST_ASIO_MODULE}>:Boost::asio::module>
 )
 
 add_library(third_module INTERFACE)
@@ -81,8 +108,8 @@ target_link_libraries(third_module
     spdlog::module
 )
 
-add_library(cxx_std INTERFACE)
-target_compile_features(cxx_std INTERFACE cxx_std_23)
+add_library(cxx_std_interface INTERFACE)
+target_compile_features(cxx_std_interface INTERFACE cxx_std_23)
 
 add_executable(asio_callback)
 target_sources(asio_callback
@@ -91,10 +118,11 @@ target_sources(asio_callback
 )
 target_link_libraries(asio_callback
   PRIVATE
-    third_module
+    # third_module
+    catch2_interface
+    spdlog_interface
     asio_interface
-    # asio::module;
-    cxx_std
+    cxx_std_interface
 )
 
 add_executable(asio_switch)
@@ -104,19 +132,65 @@ target_sources(asio_switch PRIVATE
 )
 target_link_libraries(asio_switch
   PRIVATE
-    ${asio_common}
-    third_module
+    # ${asio_common}
+    # third_module
+    catch2_interface
+    spdlog_interface
+    asio_interface
+    cxx_std_interface
 )
 
+add_library(boost_scope_module_interface INTERFACE)
+target_compile_definitions(boost_scope_module_interface
+  INTERFACE
+    USE_BOOST_SCOPE_MODULE=$<BOOL:${USE_BOOST_SCOPE_MODULE}>
+)
+target_link_libraries(boost_scope_module_interface
+  INTERFACE
+    $<$<BOOL:${USE_BOOST_SCOPE_MODULE}>:Boost::scope::module>
+)
+add_library(scope_interface ALIAS boost_scope_module_interface)
+
+
+add_library(boost_context_module_interface INTERFACE)
+target_compile_definitions(boost_context_module_interface
+  INTERFACE
+    USE_BOOST_CONTEXT_MODULE=$<BOOL:${USE_BOOST_CONTEXT_MODULE}>
+)
+target_link_libraries(boost_context_module_interface
+  INTERFACE
+    $<$<BOOL:${USE_BOOST_CONTEXT_MODULE}>:Boost::context::module>
+    Boost::context
+)
+add_library(context_interface ALIAS boost_context_module_interface)
+
+
+add_library(boost_coroutine2_module_interface INTERFACE)
+target_compile_definitions(boost_coroutine2_module_interface
+  INTERFACE
+    USE_BOOST_COROUTINE2_MODULE=$<BOOL:${USE_BOOST_COROUTINE2_MODULE}>
+)
+target_link_libraries(boost_coroutine2_module_interface
+  INTERFACE
+    $<$<BOOL:${USE_BOOST_COROUTINE2_MODULE}>:Boost::coroutine2::module>
+)
+add_library(coroutine2_interface ALIAS boost_coroutine2_module_interface)
+
 add_executable(asio_coroutine2)
-target_sources(asio_coroutine2 PRIVATE
+target_sources(asio_coroutine2
   PRIVATE FILE_SET CXX_MODULES FILES
     src/asio_coroutine2.ixx
 )
 target_link_libraries(asio_coroutine2
   PRIVATE
-    ${context_common}
-    third_module
+    # third_module
+    catch2_interface
+    spdlog_interface
+    Boost::context
+    asio_interface
+    scope_interface
+    coroutine2_interface
+    cxx_std_interface
 )
 
 add_executable(asio_continuatioin)
@@ -126,8 +200,15 @@ target_sources(asio_continuatioin PRIVATE
 )
 target_link_libraries(asio_continuatioin
   PRIVATE
-    ${context_common}
-    third_module
+    # ${context_common}
+    # third_module
+    # Boost::context
+    catch2_interface
+    spdlog_interface
+    asio_interface
+    scope_interface
+    context_interface
+    cxx_std_interface
 )
 
 add_executable(asio_context_fiber)
@@ -137,8 +218,14 @@ target_sources(asio_context_fiber PRIVATE
 )
 target_link_libraries(asio_context_fiber
   PRIVATE
-    ${context_common}
-    third_module
+    # ${context_common}
+    # third_module
+    catch2_interface
+    spdlog_interface
+    asio_interface
+    scope_interface
+    context_interface
+    cxx_std_interface
 )
 
 add_executable(asio_fiber)
@@ -149,7 +236,11 @@ target_sources(asio_fiber PRIVATE
 target_link_libraries(asio_fiber PRIVATE
   ${context_common}
   Boost::fiber
-  third_module
+  # third_module
+  catch2_interface
+  spdlog_interface
+  asio_interface
+  scope_interface
 )
 target_compile_features(asio_fiber PRIVATE cxx_std_23)
 
