@@ -12,8 +12,8 @@
 
 #include "spdlog.h"
 
-//#define BOOST_LIB_DIAGNOSTIC
-//#define BOOST_ALL_NO_LIB
+// #define BOOST_LIB_DIAGNOSTIC
+// #define BOOST_ALL_NO_LIB
 
 #if !USE_BOOST_ASIO_MODULE
 #  include <boost/asio.hpp>
@@ -25,12 +25,12 @@
 #  include <boost/fiber/all.hpp>
 #endif
 
-//#include "time_count.h"
+// #include "time_count.h"
 
 #if !USE_BOOST_SCOPE_MODULE
 #  include <boost/scope/defer.hpp>
 #else
-#  include <boost.scope/macro.h>
+#  include <boost.scope/defer.hpp>
 #endif
 
 export module asio_fiber;
