@@ -57,7 +57,7 @@ option(USE_THIRD_MODULE "使用第三方庫模塊" ON)
 option(USE_ASIO_STANDALONE "使用非boost版asio" OFF)
 option(USE_ASIO_MODULE "使用asio模塊" OFF)
 option(USE_BOOST_ASIO_MODULE "使用boost.asio模塊" ON)
-option(USE_BOOST_COROUTINE2_MODULE "使用boost.coroutine2模塊" ON)
+
 option(USE_BOOST_FIBER_MODULE "使用boost.fiber模塊" OFF)
 option(USE_CATCH2_MODULE "使用catch2模塊" ON)
 option(USE_SPDLOG_MODULE "使用spdlog模塊" ON)
@@ -136,16 +136,6 @@ target_link_libraries(asio_switch
     cxx_std_interface
 )
 
-add_library(boost_coroutine2_module_interface INTERFACE)
-target_compile_definitions(boost_coroutine2_module_interface
-  INTERFACE
-    USE_BOOST_COROUTINE2_MODULE=$<BOOL:${USE_BOOST_COROUTINE2_MODULE}>
-)
-target_link_libraries(boost_coroutine2_module_interface
-  INTERFACE
-    $<$<BOOL:${USE_BOOST_COROUTINE2_MODULE}>:Boost::coroutine2::module>
-)
-add_library(coroutine2_interface ALIAS boost_coroutine2_module_interface)
 
 add_library(boost_fiber_module_interface INTERFACE)
 target_compile_definitions(boost_fiber_module_interface
@@ -171,7 +161,8 @@ target_link_libraries(asio_coroutine2
     Boost::context::module::option
     asio_interface
     Boost::scope::module::option
-    coroutine2_interface
+    # coroutine2_interface
+    Boost::coroutine2::module::option
     cxx_std_interface
 )
 
