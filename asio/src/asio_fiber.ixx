@@ -10,7 +10,7 @@
 
 #include "catch2.h"
 
-#include "spdlog.h"
+#include <spdlog/spdlog.h>
 
 // #define BOOST_LIB_DIAGNOSTIC
 // #define BOOST_ALL_NO_LIB

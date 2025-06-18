@@ -56,11 +56,11 @@ option(USE_STD_MODULE "使用標準庫模塊" ON)
 option(USE_THIRD_MODULE "使用第三方庫模塊" ON)
 option(USE_ASIO_STANDALONE "使用非boost版asio" OFF)
 option(USE_ASIO_MODULE "使用asio模塊" OFF)
-option(USE_BOOST_ASIO_MODULE "使用boost.asio模塊" ON)
+# option(USE_BOOST_ASIO_MODULE "使用boost.asio模塊" ON)
 
 option(USE_BOOST_FIBER_MODULE "使用boost.fiber模塊" OFF)
 option(USE_CATCH2_MODULE "使用catch2模塊" ON)
-option(USE_SPDLOG_MODULE "使用spdlog模塊" ON)
+# option(USE_SPDLOG_MODULE "使用spdlog模塊" ON)
 
 add_library(catch2_interface INTERFACE)
 target_compile_definitions(catch2_interface
@@ -117,8 +117,9 @@ target_sources(asio_callback
 )
 target_link_libraries(asio_callback
   PRIVATE
-    catch2_interface
-    spdlog_interface
+    Catch2::module::option
+    # spdlog_interface
+    spdlog::module::option
     asio_interface
     cxx_std_interface
 )
@@ -130,8 +131,9 @@ target_sources(asio_switch PRIVATE
 )
 target_link_libraries(asio_switch
   PRIVATE
-    catch2_interface
-    spdlog_interface
+    Catch2::module::option
+    # spdlog_interface
+    spdlog::module::option
     asio_interface
     cxx_std_interface
 )
@@ -156,12 +158,12 @@ target_sources(asio_coroutine2
 )
 target_link_libraries(asio_coroutine2
   PRIVATE
-    catch2_interface
-    spdlog_interface
+    Catch2::module::option
+    # spdlog_interface
+    spdlog::module::option
     Boost::context::module::option
     asio_interface
     Boost::scope::module::option
-    # coroutine2_interface
     Boost::coroutine2::module::option
     cxx_std_interface
 )
@@ -173,8 +175,9 @@ target_sources(asio_continuatioin PRIVATE
 )
 target_link_libraries(asio_continuatioin
   PRIVATE
-    catch2_interface
-    spdlog_interface
+    Catch2::module::option
+    # spdlog_interface
+    spdlog::module::option
     asio_interface
     Boost::scope::module::option
     Boost::context::module::option
@@ -188,8 +191,9 @@ target_sources(asio_context_fiber PRIVATE
 )
 target_link_libraries(asio_context_fiber
   PRIVATE
-    catch2_interface
-    spdlog_interface
+    Catch2::module::option
+    # spdlog_interface
+    spdlog::module::option
     asio_interface
     Boost::scope::module::option
     Boost::context::module::option
@@ -202,8 +206,9 @@ target_sources(asio_fiber PRIVATE
     src/asio_fiber.ixx
 )
 target_link_libraries(asio_fiber PRIVATE
-  catch2_interface
-  spdlog_interface
+  Catch2::module::option
+  # spdlog_interface
+  spdlog::module::option
   asio_interface
   Boost::scope::module::option
   fiber_interface

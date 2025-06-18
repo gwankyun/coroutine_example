@@ -10,15 +10,7 @@
 
 #include "catch2.h"
 
-#include "spdlog.h"
-
-// #if !USE_ASIO_MODULE
-// #  if USE_ASIO_STANDALONE
-// #    include <asio.hpp>
-// #  else
-// #    include <boost/asio.hpp>
-// #  endif
-// #endif
+#include <spdlog/spdlog.h>
 
 #if !USE_BOOST_ASIO_MODULE
 #  include <boost/asio.hpp>
@@ -44,13 +36,6 @@ import spdlog;
 import boost.asio;
 namespace asio = boost_asio;
 #endif
-
-// #if !USE_ASIO_MODULE
-// #  if !USE_ASIO_STANDALONE
-// namespace asio = boost::asio;
-// #  endif
-// namespace asio_module = asio;
-// #endif
 
 namespace type
 {

@@ -82,6 +82,8 @@ find_package(boost_cobalt REQUIRED CONFIG)
 check_package(boost_cobalt)
 find_package(boost_asio CONFIG REQUIRED)
 check_package(boost_asio)
+find_package(boost_core CONFIG REQUIRED)
+check_package(boost_core)
 
 find_package(asio CONFIG REQUIRED)
 check_package(asio)

@@ -18,5 +18,4 @@ target_link_libraries(boost_coroutine2_module_interface
     $<$<BOOL:${USE_BOOST_COROUTINE2_MODULE}>:Boost::coroutine2::module>
     Boost::coroutine2
 )
-add_library(coroutine2_interface ALIAS boost_coroutine2_module_interface)
 add_library(Boost::coroutine2::module::option ALIAS boost_coroutine2_module_interface)

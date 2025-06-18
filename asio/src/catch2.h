@@ -2,7 +2,9 @@
 
 #if !USE_CATCH2_MODULE
 #  include <catch2/../catch2/catch_session.hpp>
-#  include <catch2/catch_test_macros.hpp>
 #else
-#  include <catch2/compat.h>
+#  include <catch2/macro.h>
 #endif
+// clang-format off
+#include <catch2/catch_test_macros.hpp>
+// clang-format on
