@@ -58,7 +58,7 @@ option(USE_ASIO_STANDALONE "使用非boost版asio" OFF)
 option(USE_ASIO_MODULE "使用asio模塊" OFF)
 # option(USE_BOOST_ASIO_MODULE "使用boost.asio模塊" ON)
 
-option(USE_BOOST_FIBER_MODULE "使用boost.fiber模塊" OFF)
+
 option(USE_CATCH2_MODULE "使用catch2模塊" ON)
 # option(USE_SPDLOG_MODULE "使用spdlog模塊" ON)
 
@@ -139,6 +139,7 @@ target_link_libraries(asio_switch
 )
 
 
+#[[
 add_library(boost_fiber_module_interface INTERFACE)
 target_compile_definitions(boost_fiber_module_interface
   INTERFACE
@@ -149,6 +150,7 @@ target_link_libraries(boost_fiber_module_interface
     $<IF:$<BOOL:${USE_BOOST_FIBER_MODULE}>,Boost::fiber::module,Boost::fiber>
 )
 add_library(fiber_interface ALIAS boost_fiber_module_interface)
+]]
 
 
 add_executable(asio_coroutine2)
@@ -211,7 +213,8 @@ target_link_libraries(asio_fiber PRIVATE
   spdlog::module::option
   asio_interface
   Boost::scope::module::option
-  fiber_interface
+  Boost::fiber::module::option
+  # fiber_interface
   cxx_std_interface
 )
 target_compile_features(asio_fiber PRIVATE cxx_std_23)

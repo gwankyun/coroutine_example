@@ -17,6 +17,8 @@ block()
 
   add_subdirectory(boost.coroutine2)
 
+  add_subdirectory(boost.intrusive)
+
   add_subdirectory(boost.fiber)
 endblock()
 

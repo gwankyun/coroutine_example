@@ -5,6 +5,7 @@ module;
 #include <boost/fiber/all.hpp>
 
 export module boost.fiber;
+export import boost.intrusive;
 
 export namespace boost::fibers
 {
