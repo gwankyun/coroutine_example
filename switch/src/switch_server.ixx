@@ -1,6 +1,18 @@
-﻿#include "connection.h"
+﻿module;
 #include "json.hpp"
-#include "log.hpp"
+//#include "log.hpp"
+
+#include <spdlog/spdlog.h>
+
+#include "connection.h"
+
+export module switch_server;
+import std;
+
+#if USE_SPDLOG_MODULE
+import spdlog;
+#endif
+
 namespace fs = std::filesystem;
 
 // clang-format off
@@ -128,7 +140,7 @@ void handle_connection(error_code_t _error, std::size_t _bytes, acceptor_t& _acc
     CORO_END();
 }
 
-int main(int _argc, char* _argv[])
+export int main(int _argc, char* _argv[])
 {
     (void)_argc;
     (void)_argv;

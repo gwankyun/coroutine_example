@@ -1,10 +1,10 @@
 ﻿add_library(boost_scope_module)
 target_sources(boost_scope_module
   PRIVATE
-    boost.scope/defer.hpp
+    boost/scope/defer.hpp
   PRIVATE FILE_SET CXX_MODULES FILES
     boost.scope.ixx)
-target_include_directories(boost_scope_module PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(boost_scope_module INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(boost_scope_module
   PUBLIC Boost::scope Boost::config)
 target_compile_features(boost_scope_module PRIVATE cxx_std_23)

@@ -139,20 +139,6 @@ target_link_libraries(asio_switch
 )
 
 
-#[[
-add_library(boost_fiber_module_interface INTERFACE)
-target_compile_definitions(boost_fiber_module_interface
-  INTERFACE
-    USE_BOOST_FIBER_MODULE=$<BOOL:${USE_BOOST_FIBER_MODULE}>
-)
-target_link_libraries(boost_fiber_module_interface
-  INTERFACE
-    $<IF:$<BOOL:${USE_BOOST_FIBER_MODULE}>,Boost::fiber::module,Boost::fiber>
-)
-add_library(fiber_interface ALIAS boost_fiber_module_interface)
-]]
-
-
 add_executable(asio_coroutine2)
 target_sources(asio_coroutine2
   PRIVATE FILE_SET CXX_MODULES FILES

@@ -27,11 +27,7 @@
 
 // #include "time_count.h"
 
-#if !USE_BOOST_SCOPE_MODULE
-#  include <boost/scope/defer.hpp>
-#else
-#  include <boost.scope/defer.hpp>
-#endif
+#include <boost/scope/defer.hpp>
 
 export module asio_fiber;
 

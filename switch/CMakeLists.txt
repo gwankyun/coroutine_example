@@ -17,14 +17,15 @@ target_link_libraries(${switch_required} INTERFACE
 )
 target_compile_features(${switch_required} INTERFACE cxx_std_23)
 
-set(switch_server switch_server)
-add_executable(${switch_server})
-target_sources(${switch_server}
-  PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/switch_server.cpp
+add_executable(switch_server)
+target_sources(switch_server
+  PRIVATE FILE_SET CXX_MODULES FILES
+    src/switch_server.ixx
 )
-target_link_libraries(${switch_server}
+target_link_libraries(switch_server
   PRIVATE
     ${switch_required}
+    spdlog::module::option
 )
-set_target_properties(${switch_server} PROPERTIES FOLDER ${switch})
+set_target_properties(switch_server PROPERTIES FOLDER ${switch})
+target_compile_features(switch_server PRIVATE cxx_std_23)

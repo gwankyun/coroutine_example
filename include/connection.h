@@ -64,7 +64,7 @@ struct Argument
         {
             this->port = asio::ip::port_type(std::stoul(_argv[1]));
         }
-        SPDLOG_INFO("port: {}", port);
+        //SPDLOG_INFO("port: {}", port);
     }
 
     void parse_client(int _argc, char* _argv[])
@@ -74,20 +74,20 @@ struct Argument
         {
             address = asio::ip::make_address(_argv[1]);
         }
-        SPDLOG_INFO("address: {}", address.to_string());
+        //SPDLOG_INFO("address: {}", address.to_string());
 
         port = 8888;
         if (_argc >= 3)
         {
             port = asio::ip::port_type(std::stoul(_argv[2]));
         }
-        SPDLOG_INFO("port: {}", port);
+        //SPDLOG_INFO("port: {}", port);
 
         connect_number = 2u;
         if (_argc >= 4)
         {
             connect_number = std::stoi(_argv[3]);
         }
-        SPDLOG_INFO("conn_count: {}", connect_number);
+        //SPDLOG_INFO("conn_count: {}", connect_number);
     }
 };
