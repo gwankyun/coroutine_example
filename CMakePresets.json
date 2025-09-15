@@ -3,9 +3,26 @@
     "configurePresets": [
         {
             "name": "vcpkg",
-            "generator": "Ninja",
             "binaryDir": "${sourceDir}/build",
             "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+        },
+        {
+            "name": "vs2022",
+            "generator": "Visual Studio 17 2022",
+            "binaryDir": "${sourceDir}/build",
+            "inherits": "vcpkg"
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "vs2022-debug",
+            "configurePreset": "vs2022",
+            "configuration": "Debug"
+        },
+        {
+            "name": "vs2022",
+            "configurePreset": "vs2022",
+            "configuration": "Release"
         }
     ]
 }

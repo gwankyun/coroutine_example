@@ -1,41 +1,16 @@
-﻿module;
-#include "use_module.h"
-
-#if !USE_STD_MODULE
-#  include <memory>
-#  include <string>
-#  include <unordered_map>
-#  include <vector>
-#endif
-
-#include "catch2.h"
+﻿#include <catch2/catch_test_macros.hpp>
 
 #include <spdlog/spdlog.h>
 
-#if !USE_BOOST_ASIO_MODULE
-#  include <boost/asio.hpp>
-#endif
+#include <boost/asio.hpp>
 
-// #include "time_count.h"
-
-export module asio_callback;
-
-#if USE_STD_MODULE
 import std;
-#endif
 
-#if USE_CATCH2_MODULE
 import catch2.compat;
-#endif
 
-#if USE_SPDLOG_MODULE
 import spdlog;
-#endif
 
-#if USE_BOOST_ASIO_MODULE
-import boost.asio;
-namespace asio = boost_asio;
-#endif
+namespace asio = boost::asio;
 
 namespace type
 {
@@ -101,7 +76,7 @@ TEST_CASE("asio_callback", "[callback]")
     }
 }
 
-export int main(int _argc, char* _argv[])
+int main(int _argc, char* _argv[])
 {
     std::string log_format{"[%C-%m-%d %T.%e] [%^%L%$] [%-20!!:%4#] %v"};
     spdlog::set_pattern(log_format);

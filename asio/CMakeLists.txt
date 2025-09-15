@@ -112,8 +112,8 @@ target_compile_features(cxx_std_interface INTERFACE cxx_std_23)
 
 add_executable(asio_callback)
 target_sources(asio_callback
-  PRIVATE FILE_SET CXX_MODULES FILES
-    src/asio_callback.ixx
+  PRIVATE
+    src/asio_callback.cpp
 )
 target_link_libraries(asio_callback
   PRIVATE
