@@ -126,8 +126,8 @@ target_link_libraries(asio_callback
 
 add_executable(asio_switch)
 target_sources(asio_switch PRIVATE
-  PRIVATE FILE_SET CXX_MODULES FILES
-    src/asio_switch.ixx
+  PRIVATE
+    src/asio_switch.cpp
 )
 target_link_libraries(asio_switch
   PRIVATE
