@@ -56,7 +56,7 @@ option(USE_STD_MODULE "使用標準庫模塊" ON)
 option(USE_THIRD_MODULE "使用第三方庫模塊" ON)
 option(USE_ASIO_STANDALONE "使用非boost版asio" OFF)
 option(USE_ASIO_MODULE "使用asio模塊" OFF)
-# option(USE_BOOST_ASIO_MODULE "使用boost.asio模塊" ON)
+option(USE_BOOST_ASIO_MODULE "使用boost.asio模塊" OFF)
 
 
 option(USE_CATCH2_MODULE "使用catch2模塊" ON)

@@ -51,6 +51,8 @@ import boost.context;
 #if USE_BOOST_ASIO_MODULE
 import boost.asio;
 namespace asio = boost_asio;
+#else
+namespace asio = boost::asio;
 #endif
 
 #if USE_BOOST_SCOPE_MODULE

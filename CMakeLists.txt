@@ -1,5 +1,5 @@
 ﻿# cmake最低版本
-cmake_minimum_required(VERSION 4.1.1)
+cmake_minimum_required(VERSION 4.2)
 
 # 項目名
 set(project coroutine_example)

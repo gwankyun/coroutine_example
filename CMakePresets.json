@@ -1,28 +1,28 @@
 {
-    "version": 3,
+    "version": 9,
     "configurePresets": [
         {
             "name": "vcpkg",
+            "hidden": true,
             "binaryDir": "${sourceDir}/build",
             "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
         },
         {
-            "name": "vs2022",
-            "generator": "Visual Studio 17 2022",
-            "binaryDir": "${sourceDir}/build",
-            "inherits": "vcpkg"
+            "name": "msvc",
+            "inherits": "vcpkg",
+            "description": "Visual Studio 18 2026",
+            "generator": "Visual Studio 18 2026",
+            "architecture": "x64",
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-windows"
+            }
         }
     ],
     "buildPresets": [
         {
-            "name": "vs2022-debug",
-            "configurePreset": "vs2022",
+            "name": "msvc",
+            "configurePreset": "msvc",
             "configuration": "Debug"
-        },
-        {
-            "name": "vs2022",
-            "configurePreset": "vs2022",
-            "configuration": "Release"
         }
     ]
 }
