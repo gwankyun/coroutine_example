@@ -173,6 +173,16 @@ target_sources(${main} PRIVATE
 )
 target_link_libraries(${main} PRIVATE ${common_required} Catch2::Catch2)
 
+add_executable(test)
+target_sources(test PRIVATE
+  src/test.cpp
+)
+target_link_libraries(test
+  PRIVATE
+    Boost::asio Catch2::Catch2 spdlog::spdlog Boost::coroutine2
+)
+target_compile_features(test PRIVATE cxx_std_23)
+
 add_subdirectory(module)
 add_subdirectory(asio)
 
