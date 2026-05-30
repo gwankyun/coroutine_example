@@ -24,5 +24,20 @@
             "configurePreset": "msvc",
             "configuration": "Debug"
         }
+    ],
+    "workflowPresets": [
+        {
+            "name": "msvc",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "msvc"
+                },
+                {
+                    "type": "build",
+                    "name": "msvc"
+                }
+            ]
+        }
     ]
 }

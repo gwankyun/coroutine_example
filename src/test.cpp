@@ -4,14 +4,12 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <boost/asio.hpp>
-
 #include <boost/coroutine2/all.hpp>
+#include <boost/scope/defer.hpp>
 
 import std;
 
 using namespace std::chrono_literals;
-
-namespace coro2 = boost::coroutines2;
 
 #define CORO_BEGIN(_state) \
     switch (_state) \
@@ -37,13 +35,15 @@ TEST_CASE("async", "[callback]")
 
     std::string result = "0";
 
+    auto time = 100ms;
+
     SPDLOG_INFO("");
 
     {
-        auto accept = std::make_shared<steady_timer>(context, 1s);
+        auto accept = std::make_shared<steady_timer>(context, time);
 
         accept->async_wait(
-            [accept, &context, &result](error_code _ec)
+            [&, accept](error_code _ec)
             {
                 if (_ec)
                 {
@@ -52,9 +52,9 @@ TEST_CASE("async", "[callback]")
                 }
                 SPDLOG_INFO("accept");
                 result += "1";
-                auto read = std::make_shared<steady_timer>(context, 1s);
+                auto read = std::make_shared<steady_timer>(context, time);
                 read->async_wait(
-                    [read, &context, &result](error_code _ec)
+                    [&, read](error_code _ec)
                     {
                         if (_ec)
                         {
@@ -63,9 +63,9 @@ TEST_CASE("async", "[callback]")
                         }
                         SPDLOG_INFO("read");
                         result += "2";
-                        auto write = std::make_shared<steady_timer>(context, 1s);
+                        auto write = std::make_shared<steady_timer>(context, time);
                         write->async_wait(
-                            [write, &context, &result](error_code _ec)
+                            [&, write](error_code _ec)
                             {
                                 if (_ec)
                                 {
@@ -88,57 +88,58 @@ TEST_CASE("async", "[callback]")
 using boost::asio::steady_timer;
 using boost::system::error_code;
 
-void on_switch(int& _state, boost::asio::io_context& context, std::string& result)
+struct SwitchData
 {
-    CORO_BEGIN(_state);
+    int state;
+    std::string result;
+    int i;
+};
+
+void on_switch(SwitchData& _data, boost::asio::io_context& context)
+{
+    auto time = 100ms;
+
+    auto cb = [&](std::shared_ptr<steady_timer> _timer, std::string _message)
+    {
+        return [&, _timer, _message](error_code _ec)
+        {
+            if (_ec)
+            {
+                SPDLOG_ERROR("{}", _ec.message());
+                return;
+            }
+            _data.result += _message;
+            on_switch(_data, context);
+        };
+    };
+
+    CORO_BEGIN(_data.state);
+
     [&]
     {
-        auto accept = std::make_shared<steady_timer>(context, 1s);
-        accept->async_wait(
-            [accept, &_state, &context, &result](error_code _ec)
-            {
-                if (_ec)
-                {
-                    SPDLOG_ERROR("{}", _ec.message());
-                    return;
-                }
-                result += "1";
-                on_switch(_state, context, result);
-            });
+        auto accept = std::make_shared<steady_timer>(context, time);
+        accept->async_wait(cb(accept, "1"));
     }();
-    CORO_YIELD(_state);
+    CORO_YIELD(_data.state);
+
+    for (_data.i = 0; _data.i < 3; ++_data.i)
+    {
+        SPDLOG_INFO("{}", _data.i);
+        [&]
+        {
+            auto read = std::make_shared<steady_timer>(context, time);
+            read->async_wait(cb(read, "2"));
+        }();
+        CORO_YIELD(_data.state);
+    }
+
     [&]
     {
-        auto read = std::make_shared<steady_timer>(context, 1s);
-        read->async_wait(
-            [read, &_state, &context, &result](error_code _ec)
-            {
-                if (_ec)
-                {
-                    SPDLOG_ERROR("{}", _ec.message());
-                    return;
-                }
-                result += "2";
-                on_switch(_state, context, result);
-            });
+        auto write = std::make_shared<steady_timer>(context, time);
+        write->async_wait(cb(write, "3"));
     }();
-    CORO_YIELD(_state);
-    [&]
-    {
-        auto write = std::make_shared<steady_timer>(context, 1s);
-        write->async_wait(
-            [write, &_state, &context, &result](error_code _ec)
-            {
-                if (_ec)
-                {
-                    SPDLOG_ERROR("{}", _ec.message());
-                    return;
-                }
-                result += "3";
-                on_switch(_state, context, result);
-            });
-    }();
-    CORO_YIELD(_state);
+    CORO_YIELD(_data.state);
+
     CORO_END();
 }
 
@@ -149,48 +150,114 @@ TEST_CASE("async", "[switch]")
     std::string result = "0";
     int state = 0;
 
-    on_switch(state, context, result);
+    SwitchData data{state, result, 0};
+
+    on_switch(data, context);
 
     context.run();
-    REQUIRE(result == "0123");
+    REQUIRE(data.result == "012223");
 }
 
 TEST_CASE("async", "[coroutine2]")
 {
     boost::asio::io_context context;
+    namespace coro2 = boost::coroutines2;
 
     std::string result = "0";
 
-    typename coro2::coroutine<void>::pull_type pull(
-        [&](typename coro2::coroutine<void>::push_type& _push)
-        {
-            auto accept = std::make_shared<steady_timer>(context, 1s);
-            accept->async_wait(
-                [accept, &context, &result, &_push](error_code _ec)
-                {
-                    result += "1";
-                    _push();
-                });
-            _push();
-            auto read = std::make_shared<steady_timer>(context, 1s);
-            read->async_wait(
-                [read, &context, &result, &_push](error_code _ec)
-                {
-                    result += "2";
-                    _push();
-                });
-            auto write = std::make_shared<steady_timer>(context, 1s);
-            write->async_wait(
-                [write, &context, &result, &_push](error_code _ec)
-                {
-                    result += "3";
-                    _push();
-                });
-        });
+    auto time = 100ms;
 
-    pull();
-    context.run();
-    pull();
+    std::queue<std::tuple<int, error_code>> awake_cont;
+    using coro_type = coro2::coroutine<error_code>;
+    std::unordered_map<int, std::unique_ptr<coro_type::push_type>> coro_cont;
+
+    auto make_coro = [&](int _id)
+    {
+        return [&, _id](typename coro_type::pull_type& _push)
+        {
+            auto awake = [&] { awake_cont.push(std::make_tuple(_id, error_code())); };
+            BOOST_SCOPE_DEFER[&]
+            {
+                awake();
+            };
+
+            auto cb = [&](std::string _message)
+            {
+                return [&, _message](error_code)
+                {
+                    result += _message;
+                    awake();
+                };
+            };
+
+            error_code e;
+
+            SPDLOG_INFO("");
+            steady_timer accept(context, time);
+            accept.async_wait(cb("1"));
+            _push();
+            e = _push.get();
+            if (e)
+            {
+                SPDLOG_ERROR("{}", e.message());
+                return;
+            }
+
+            SPDLOG_INFO("");
+            for (int i = 0; i < 3; ++i)
+            {
+                steady_timer read(context, time);
+                read.async_wait(cb("2"));
+                _push();
+                e = _push.get();
+                if (e)
+                {
+                    SPDLOG_ERROR("{}", e.message());
+                    return;
+                }
+            }
+
+            SPDLOG_INFO("");
+            steady_timer write(context, time);
+            write.async_wait(cb("3"));
+            _push();
+            e = _push.get();
+            if (e)
+            {
+                SPDLOG_ERROR("{}", e.message());
+                return;
+            }
+        };
+    };
+
+    {
+        auto id = 0;
+        coro_cont[id] = std::make_unique<coro_type::push_type>(make_coro(id));
+        (*coro_cont[id])(error_code());
+    }
+
+    while (!coro_cont.empty())
+    {
+        context.run();
+        if (!awake_cont.empty())
+        {
+            auto [id, err] = awake_cont.front();
+            awake_cont.pop();
+
+            auto iter = coro_cont.find(id);
+            if (iter != coro_cont.end())
+            {
+                auto& pull = *iter->second;
+                if (!pull)
+                {
+                    coro_cont.erase(id);
+                    continue;
+                }
+                pull(err);
+            }
+        }
+    }
+    REQUIRE(result == "012223");
 }
 
 int main(int _argc, char* _argv[])
