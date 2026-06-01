@@ -25,6 +25,13 @@
             "configuration": "Debug"
         }
     ],
+    "testPresets": [
+        {
+            "name": "msvc",
+            "configurePreset": "msvc",
+            "configuration": "Debug"
+        }
+    ],
     "workflowPresets": [
         {
             "name": "msvc",
@@ -35,6 +42,10 @@
                 },
                 {
                     "type": "build",
+                    "name": "msvc"
+                },
+                {
+                    "type": "test",
                     "name": "msvc"
                 }
             ]
