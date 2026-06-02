@@ -60,8 +60,9 @@ target_link_libraries(
     Boost::scope
 )
 
+#[[
 add_executable(tests)
-target_sources(tests PRIVATE src/test.cpp)
+target_sources(tests PRIVATE tests/src/test.cpp)
 target_link_libraries(
   tests
   PRIVATE #
@@ -78,5 +79,5 @@ target_compile_features(tests PRIVATE cxx_std_23)
 enable_testing()
 include(Catch)
 catch_discover_tests(tests)
-
-set_tests_properties(${CTEST_TESTS} PROPERTIES ENVIRONMENT "SPDLOG_LEVEL=off")
+set_tests_properties(${CTEST_TESTS} PROPERTIES ENVIRONMENT "SPDLOG_LEVEL=OFF")
+#]]

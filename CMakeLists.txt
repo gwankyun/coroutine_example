@@ -145,6 +145,26 @@ target_link_libraries(main PRIVATE common_required Catch2::Catch2)
 
 add_subdirectory(tests)
 
+add_executable(tests)
+target_sources(tests PRIVATE tests/src/test.cpp)
+target_link_libraries(
+  tests
+  PRIVATE #
+    Boost::asio
+    Catch2::Catch2
+    spdlog::spdlog
+    Boost::scope
+    test_callback
+    test_switch
+    test_coroutine2
+)
+target_compile_features(tests PRIVATE cxx_std_23)
+
+enable_testing()
+include(Catch)
+catch_discover_tests(tests)
+set_tests_properties(${CTEST_TESTS} PROPERTIES ENVIRONMENT "SPDLOG_LEVEL=OFF")
+
 add_subdirectory(module)
 add_subdirectory(asio)
 
