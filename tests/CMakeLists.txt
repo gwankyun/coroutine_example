@@ -1,5 +1,4 @@
-﻿set(CMAKE_FOLDER tests)
-
+﻿set(CMAKE_FOLDER test)
 
 add_library(test_common INTERFACE)
 target_link_libraries(
@@ -60,24 +59,20 @@ target_link_libraries(
     Boost::scope
 )
 
-#[[
-add_executable(tests)
-target_sources(tests PRIVATE tests/src/test.cpp)
-target_link_libraries(
-  tests
-  PRIVATE #
-    Boost::asio
-    Catch2::Catch2
-    spdlog::spdlog
-    Boost::scope
-    test_callback
-    test_switch
-    test_coroutine2
+add_library(test_continuation)
+target_sources(
+  test_continuation
+  PUBLIC # 對外接口單元需要公開
+    FILE_SET CXX_MODULES
+      BASE_DIRS src # 模塊根目錄，讓編譯器找到模塊接口
+      FILES src/test_continuation.ixx # 模塊接口單元
+  PRIVATE
+    src/test_continuation.cpp # 模塊實現單元
 )
-target_compile_features(tests PRIVATE cxx_std_23)
-
-enable_testing()
-include(Catch)
-catch_discover_tests(tests)
-set_tests_properties(${CTEST_TESTS} PROPERTIES ENVIRONMENT "SPDLOG_LEVEL=OFF")
-#]]
+target_link_libraries(
+  test_continuation
+  PRIVATE #
+    test_common
+    Boost::context
+    Boost::scope
+)

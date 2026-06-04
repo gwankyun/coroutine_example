@@ -150,13 +150,12 @@ target_sources(tests PRIVATE tests/src/test.cpp)
 target_link_libraries(
   tests
   PRIVATE #
-    Boost::asio
     Catch2::Catch2
     spdlog::spdlog
-    Boost::scope
     test_callback
     test_switch
     test_coroutine2
+    test_continuation
 )
 target_compile_features(tests PRIVATE cxx_std_23)
 

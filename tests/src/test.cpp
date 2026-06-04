@@ -3,13 +3,11 @@
 #include <catch2/../catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
 
-#include <boost/asio.hpp>
-#include <boost/scope/defer.hpp>
-
 import std;
 import test.callback;
 import test.switch_coro;
 import test.coroutine2;
+import test.continuation;
 
 using namespace std::chrono_literals;
 
@@ -18,8 +16,8 @@ TEST_CASE("async", "[callback]")
     REQUIRE(test_callback() == "0123");
 }
 
-using boost::asio::steady_timer;
-using boost::system::error_code;
+//using boost::asio::steady_timer;
+//using boost::system::error_code;
 
 TEST_CASE("async", "[switch]")
 {
@@ -29,6 +27,11 @@ TEST_CASE("async", "[switch]")
 TEST_CASE("async", "[coroutine2]")
 {
     REQUIRE(test_coroutine2() == "012223");
+}
+
+TEST_CASE("async", "[continuation]")
+{
+    REQUIRE(test_continuation() == "012223");
 }
 
 int main(int _argc, char* _argv[])
