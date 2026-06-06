@@ -25,18 +25,18 @@ target_link_libraries(
     test_common
 )
 
-add_library(test_switch)
+add_library(test_switch_coro)
 target_sources(
-  test_switch
+  test_switch_coro
   PUBLIC # 對外接口單元需要公開
     FILE_SET CXX_MODULES
       BASE_DIRS src # 模塊根目錄，讓編譯器找到模塊接口
-      FILES src/test_switch.ixx # 模塊接口單元
+      FILES src/test_switch_coro.ixx # 模塊接口單元
   PRIVATE
-    src/test_switch.cpp # 模塊實現單元
+    src/test_switch_coro.cpp # 模塊實現單元
 )
 target_link_libraries(
-  test_switch
+  test_switch_coro
   PRIVATE #
     test_common
 )
@@ -59,20 +59,56 @@ target_link_libraries(
     Boost::scope
 )
 
-add_library(test_continuation)
+add_library(test_context_continuation)
 target_sources(
-  test_continuation
+  test_context_continuation
   PUBLIC # 對外接口單元需要公開
     FILE_SET CXX_MODULES
       BASE_DIRS src # 模塊根目錄，讓編譯器找到模塊接口
-      FILES src/test_continuation.ixx # 模塊接口單元
+      FILES src/test_context_continuation.ixx # 模塊接口單元
   PRIVATE
-    src/test_continuation.cpp # 模塊實現單元
+    src/test_context_continuation.cpp # 模塊實現單元
 )
 target_link_libraries(
-  test_continuation
+  test_context_continuation
   PRIVATE #
     test_common
     Boost::context
+    Boost::scope
+)
+
+add_library(test_context_fiber)
+target_sources(
+  test_context_fiber
+  PUBLIC # 對外接口單元需要公開
+    FILE_SET CXX_MODULES
+      BASE_DIRS src # 模塊根目錄，讓編譯器找到模塊接口
+      FILES src/test_context_fiber.ixx # 模塊接口單元
+  PRIVATE
+    src/test_context_fiber.cpp # 模塊實現單元
+)
+target_link_libraries(
+  test_context_fiber
+  PRIVATE #
+    test_common
+    Boost::context
+    Boost::scope
+)
+
+add_library(test_fiber)
+target_sources(
+  test_fiber
+  PUBLIC # 對外接口單元需要公開
+    FILE_SET CXX_MODULES
+      BASE_DIRS src # 模塊根目錄，讓編譯器找到模塊接口
+      FILES src/test_fiber.ixx # 模塊接口單元
+  PRIVATE
+    src/test_fiber.cpp # 模塊實現單元
+)
+target_link_libraries(
+  test_fiber
+  PRIVATE #
+    test_common
+    Boost::fiber
     Boost::scope
 )

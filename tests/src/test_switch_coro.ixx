@@ -4,4 +4,4 @@ export module test.switch_coro;
 
 import std;
 
-export std::string test_switch();
+export std::string test_switch_coro();

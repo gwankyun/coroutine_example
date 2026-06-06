@@ -1,11 +1,11 @@
 ﻿module;
 
 #include <boost/asio.hpp>
-#include <boost/coroutine2/all.hpp>
+#include <boost/context/continuation.hpp>
 #include <boost/scope/defer.hpp>
 #include <spdlog/spdlog.h>
 
-module test.coroutine2;
+module test.context.continuation;
 
 import std;
 
@@ -13,10 +13,9 @@ using namespace std::chrono_literals;
 using boost::asio::steady_timer;
 using boost::system::error_code;
 
-std::string test_coroutine2()
+std::string test_context_continuation()
 {
     boost::asio::io_context context;
-    namespace coro2 = boost::coroutines2;
 
     std::string result = "0";
 
@@ -24,13 +23,13 @@ std::string test_coroutine2()
 
     // awake_cont用於存儲需要喚醒的協程ID和對應的錯誤碼，當異步操作完成時，將結果傳回協程並喚醒協程繼續執行。
     std::queue<int> awake_cont;
-    using coro_type = coro2::coroutine<bool>;
+    namespace ctx = boost::context;
     // coro_cont用於存儲協程ID和對應的協程對象，當需要喚醒協程時，從coro_cont中找到對應的協程對象並傳回異步操作的結果。
-    std::unordered_map<int, std::unique_ptr<coro_type::pull_type>> coro_cont;
+    std::unordered_map<int, std::unique_ptr<ctx::continuation>> coro_cont;
 
-    auto make_coro = [&](int _id)
+    auto make_continuation = [&](int _id)
     {
-        return [&, _id](typename coro_type::push_type& _push)
+        auto continuation = [&, _id](ctx::continuation&& _sink)
         {
             // 協程結束時自動喚醒，確保協程能夠正常退出。
             auto awake = [&] { awake_cont.push(_id); };
@@ -38,6 +37,8 @@ std::string test_coroutine2()
             {
                 awake();
             };
+
+            error_code e;
 
             auto cb = [&](error_code& e)
             {
@@ -48,18 +49,15 @@ std::string test_coroutine2()
                 };
             };
 
-            error_code e;
-
             SPDLOG_INFO("");
             steady_timer accept(context, time);
             accept.async_wait(cb(e));
             // 協程暫停，等待異步操作完成後再繼續執行。
-            _push(false);
-            // 獲取異步操作的結果，如果有錯誤則輸出錯誤信息並退出協程。
+            _sink = _sink.resume();
             if (e)
             {
                 SPDLOG_ERROR("{}", e.message());
-                return;
+                return std::move(_sink);
             }
             result += "1";
 
@@ -69,11 +67,11 @@ std::string test_coroutine2()
             {
                 steady_timer read(context, time);
                 read.async_wait(cb(e));
-                _push(false);
+                _sink = _sink.resume();
                 if (e)
                 {
                     SPDLOG_ERROR("{}", e.message());
-                    return;
+                    return std::move(_sink);
                 }
                 result += "2";
             }
@@ -81,51 +79,58 @@ std::string test_coroutine2()
             SPDLOG_INFO("");
             steady_timer write(context, time);
             write.async_wait(cb(e));
-            _push(false);
+            _sink = _sink.resume();
             if (e)
             {
                 SPDLOG_ERROR("{}", e.message());
-                return;
+                return std::move(_sink);
             }
             result += "3";
-            _push(true);
+            return std::move(_sink);
         };
+        return ctx::callcc(continuation);
     };
 
-    for (int id = 0; id < 1; ++id)
+    auto main_continuation = [&]
     {
-        coro_cont[id] = std::make_unique<coro_type::pull_type>(make_coro(id));
-    }
-
-    // 調度算法：每次運行io_context後，檢查是否有協程需要喚醒，如果有則喚醒一個協程，直到所有協程都完成。
-    while (!coro_cont.empty())
-    {
-        context.run();
-        if (!awake_cont.empty())
+        for (int id = 0; id < 1; ++id)
         {
-            auto id = awake_cont.front();
-            awake_cont.pop();
+            coro_cont[id] = std::make_unique<ctx::continuation>(make_continuation(id));
+        }
 
-            auto iter = coro_cont.find(id);
-            if (iter != coro_cont.end())
+        // 調度算法：每次運行io_context後，檢查是否有協程需要喚醒，如果有則喚醒一個協程，直到所有協程都完成。
+        while (!coro_cont.empty())
+        {
+            context.run();
+            if (!awake_cont.empty())
             {
-                auto& pull = *iter->second;
-                // 判斷協程是否已經完成，完成就移除
-                if (!pull)
+                auto id = awake_cont.front();
+                awake_cont.pop();
+
+                auto iter = coro_cont.find(id);
+                if (iter != coro_cont.end())
                 {
-                    coro_cont.erase(id);
-                    continue;
-                }
-                pull(); // 協程切換處
-                // 演示數據傳遞
-                auto last = pull.get();
-                SPDLOG_INFO("last: {}", last);
-                if (last) // 如果是最後一行需要再喚醒一次
-                {
-                    pull();
+                    auto& continuation = *iter->second;
+                    // 判斷協程是否已經完成，完成就移除
+                    if (!continuation)
+                    {
+                        coro_cont.erase(id);
+                        continue;
+                    }
+                    // 將異步操作的結果傳回協程，讓協程繼續執行
+                    continuation = continuation.resume();
                 }
             }
         }
-    }
+    };
+
+    auto main = std::make_unique<ctx::continuation>(ctx::callcc(
+        [&](ctx::continuation&& _sink)
+        {
+            SPDLOG_INFO("enter main");
+            main_continuation();
+            return std::move(_sink);
+        }));
+
     return result;
 }

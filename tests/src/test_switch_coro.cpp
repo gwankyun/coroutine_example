@@ -31,64 +31,82 @@ struct SwitchData
     int state;
     std::string result;
     int i;
+    error_code ec;
 };
 
 void on_switch(SwitchData& _data, boost::asio::io_context& context)
 {
     auto time = 100ms;
+    auto& ec = _data.ec;
+    auto& state = _data.state;
+    auto& result = _data.result;
+    auto& i = _data.i;
 
-    auto cb = [&](std::shared_ptr<steady_timer> _timer, std::string _message)
+    auto cb = [&](std::shared_ptr<steady_timer> _timer, error_code& ec)
     {
-        return [&, _timer, _message](error_code _ec)
+        return [&, _timer](error_code _ec)
         {
-            if (_ec)
-            {
-                SPDLOG_ERROR("{}", _ec.message());
-                return;
-            }
-            _data.result += _message;
+            ec = _ec;
             on_switch(_data, context);
         };
     };
 
-    CORO_BEGIN(_data.state);
+    CORO_BEGIN(state);
 
     [&]
     {
         auto accept = std::make_shared<steady_timer>(context, time);
-        accept->async_wait(cb(accept, "1"));
+        accept->async_wait(cb(accept, ec));
     }();
-    CORO_YIELD(_data.state);
-
-    for (_data.i = 0; _data.i < 3; ++_data.i)
+    CORO_YIELD(state);
+    if (ec)
     {
-        SPDLOG_INFO("{}", _data.i);
+        SPDLOG_ERROR("{}", ec.message());
+        return;
+    }
+    result += "1";
+
+    for (i = 0; i < 3; ++i)
+    {
+        SPDLOG_INFO("{}", i);
         [&]
         {
             auto read = std::make_shared<steady_timer>(context, time);
-            read->async_wait(cb(read, "2"));
+            read->async_wait(cb(read, ec));
         }();
         CORO_YIELD(_data.state);
+        if (ec)
+        {
+            SPDLOG_ERROR("{}", ec.message());
+            return;
+        }
+        result += "2";
     }
 
     [&]
     {
         auto write = std::make_shared<steady_timer>(context, time);
-        write->async_wait(cb(write, "3"));
+        write->async_wait(cb(write, ec));
     }();
-    CORO_YIELD(_data.state);
+    CORO_YIELD(state);
+    if (ec)
+    {
+        SPDLOG_ERROR("{}", ec.message());
+        return;
+    }
+    result += "3";
 
     CORO_END();
 }
 
-std::string test_switch()
+std::string test_switch_coro()
 {
     boost::asio::io_context context;
 
     std::string result = "0";
     int state = 0;
 
-    SwitchData data{state, result, 0};
+    SwitchData data{state, result, 0, error_code()};
 
     on_switch(data, context);
 

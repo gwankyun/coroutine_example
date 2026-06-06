@@ -153,9 +153,11 @@ target_link_libraries(
     Catch2::Catch2
     spdlog::spdlog
     test_callback
-    test_switch
+    test_switch_coro
     test_coroutine2
-    test_continuation
+    test_context_continuation
+    test_context_fiber
+    test_fiber
 )
 target_compile_features(tests PRIVATE cxx_std_23)
 
