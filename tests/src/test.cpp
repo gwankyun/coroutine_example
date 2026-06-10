@@ -40,7 +40,12 @@ TEST_CASE("context.fiber", "[async]")
 
 TEST_CASE("fiber", "[async]")
 {
-    REQUIRE(test_fiber() == "012223");
+    auto result = test_fiber();
+    REQUIRE(result.size() == 3);
+    for (auto i = 0; i != 3; ++i)
+    {
+         REQUIRE(result[i] == std::to_string(i) + "rrrw");
+    }
 }
 
 int main(int _argc, char* _argv[])

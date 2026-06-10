@@ -27,10 +27,8 @@ std::string test_context_continuation()
     // coro_cont用於存儲協程ID和對應的協程對象，當需要喚醒協程時，從coro_cont中找到對應的協程對象並傳回異步操作的結果。
     std::unordered_map<int, std::unique_ptr<ctx::continuation>> coro_cont;
 
-    auto make_continuation = [&](int _id)
-    {
-        auto continuation = [&, _id](ctx::continuation&& _sink)
-        {
+    auto make_continuation = [&](int _id) {
+        auto continuation = [&, _id](ctx::continuation&& _sink) {
             // 協程結束時自動喚醒，確保協程能夠正常退出。
             auto awake = [&] { awake_cont.push(_id); };
             BOOST_SCOPE_DEFER[&]
@@ -40,10 +38,8 @@ std::string test_context_continuation()
 
             error_code e;
 
-            auto cb = [&](error_code& e)
-            {
-                return [&](error_code _e)
-                {
+            auto cb = [&](error_code& e) {
+                return [&](error_code _e) {
                     e = _e;
                     awake();
                 };
@@ -91,8 +87,7 @@ std::string test_context_continuation()
         return ctx::callcc(continuation);
     };
 
-    auto main_continuation = [&]
-    {
+    auto main_continuation = [&] {
         for (int id = 0; id < 1; ++id)
         {
             coro_cont[id] = std::make_unique<ctx::continuation>(make_continuation(id));
@@ -124,13 +119,11 @@ std::string test_context_continuation()
         }
     };
 
-    auto main = std::make_unique<ctx::continuation>(ctx::callcc(
-        [&](ctx::continuation&& _sink)
-        {
-            SPDLOG_INFO("enter main");
-            main_continuation();
-            return std::move(_sink);
-        }));
+    auto main = std::make_unique<ctx::continuation>(ctx::callcc([&](ctx::continuation&& _sink) {
+        SPDLOG_INFO("enter main");
+        main_continuation();
+        return std::move(_sink);
+    }));
 
     return result;
 }

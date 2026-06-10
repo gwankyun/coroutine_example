@@ -28,10 +28,8 @@ std::string test_coroutine2()
     // coro_cont用於存儲協程ID和對應的協程對象，當需要喚醒協程時，從coro_cont中找到對應的協程對象並傳回異步操作的結果。
     std::unordered_map<int, std::unique_ptr<coro_type::pull_type>> coro_cont;
 
-    auto make_coro = [&](int _id)
-    {
-        return [&, _id](typename coro_type::push_type& _push)
-        {
+    auto make_coro = [&](int _id) {
+        return [&, _id](typename coro_type::push_type& _push) {
             // 協程結束時自動喚醒，確保協程能夠正常退出。
             auto awake = [&] { awake_cont.push(_id); };
             BOOST_SCOPE_DEFER[&]
@@ -39,10 +37,8 @@ std::string test_coroutine2()
                 awake();
             };
 
-            auto cb = [&](error_code& e)
-            {
-                return [&](error_code _e)
-                {
+            auto cb = [&](error_code& e) {
+                return [&](error_code _e) {
                     e = _e;
                     awake();
                 };

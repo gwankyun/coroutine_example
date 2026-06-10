@@ -31,17 +31,15 @@ void on_read(error_code _ec, boost::asio::io_context& context, std::shared_ptr<s
     else
     {
         auto write = std::make_shared<steady_timer>(context, g_time);
-        write->async_wait(
-            [&, write](error_code _ec)
+        write->async_wait([&, write](error_code _ec) {
+            if (_ec)
             {
-                if (_ec)
-                {
-                    SPDLOG_ERROR("{}", _ec.message());
-                    return;
-                }
-                SPDLOG_INFO("write");
-                result += "3";
-            });
+                SPDLOG_ERROR("{}", _ec.message());
+                return;
+            }
+            SPDLOG_INFO("write");
+            result += "3";
+        });
     }
 }
 
@@ -56,19 +54,17 @@ std::string test_callback()
     {
         auto accept = std::make_shared<steady_timer>(context, g_time);
 
-        accept->async_wait(
-            [&, accept](error_code _ec)
+        accept->async_wait([&, accept](error_code _ec) {
+            if (_ec)
             {
-                if (_ec)
-                {
-                    SPDLOG_ERROR("{}", _ec.message());
-                    return;
-                }
-                SPDLOG_INFO("accept");
-                result += "1";
-                auto read = std::make_shared<steady_timer>(context, g_time);
-                read->async_wait([&, read](error_code _ec) { on_read(_ec, context, read, result, 0); });
-            });
+                SPDLOG_ERROR("{}", _ec.message());
+                return;
+            }
+            SPDLOG_INFO("accept");
+            result += "1";
+            auto read = std::make_shared<steady_timer>(context, g_time);
+            read->async_wait([&, read](error_code _ec) { on_read(_ec, context, read, result, 0); });
+        });
     }
 
     SPDLOG_INFO("");

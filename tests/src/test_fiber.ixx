@@ -4,4 +4,4 @@ export module test.fiber;
 
 import std;
 
-export std::string test_fiber();
+export std::unordered_map<int, std::string> test_fiber();

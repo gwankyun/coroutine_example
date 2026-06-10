@@ -27,10 +27,8 @@ std::string test_context_fiber()
     // coro_cont用於存儲協程ID和對應的協程對象，當需要喚醒協程時，從coro_cont中找到對應的協程對象並傳回異步操作的結果。
     std::unordered_map<int, std::unique_ptr<ctx::fiber>> coro_cont;
 
-    auto make_fiber = [&](int _id)
-    {
-        auto fiber = [&, _id](ctx::fiber&& _sink)
-        {
+    auto make_fiber = [&](int _id) {
+        auto fiber = [&, _id](ctx::fiber&& _sink) {
             // 協程結束時自動喚醒，確保協程能夠正常退出。
             auto awake = [&] { awake_cont.push(_id); };
             BOOST_SCOPE_DEFER[&]
@@ -40,10 +38,8 @@ std::string test_context_fiber()
 
             error_code e;
 
-            auto cb = [&](error_code& e)
-            {
-                return [&](error_code _e)
-                {
+            auto cb = [&](error_code& e) {
+                return [&](error_code _e) {
                     e = _e;
                     awake();
                 };
@@ -91,8 +87,7 @@ std::string test_context_fiber()
         return fiber;
     };
 
-    auto main_fiber = [&]
-    {
+    auto main_fiber = [&] {
         for (int id = 0; id < 1; ++id)
         {
             coro_cont[id] = std::make_unique<ctx::fiber>(make_fiber(id));
@@ -126,13 +121,11 @@ std::string test_context_fiber()
         }
     };
 
-    auto main = std::make_unique<ctx::fiber>(
-        [&](ctx::fiber&& _sink)
-        {
-            SPDLOG_INFO("enter main");
-            main_fiber();
-            return std::move(_sink);
-        });
+    auto main = std::make_unique<ctx::fiber>([&](ctx::fiber&& _sink) {
+        SPDLOG_INFO("enter main");
+        main_fiber();
+        return std::move(_sink);
+    });
     *main = std::move(*main).resume();
 
     return result;

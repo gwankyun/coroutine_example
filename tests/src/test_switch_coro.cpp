@@ -42,10 +42,8 @@ void on_switch(SwitchData& _data, boost::asio::io_context& context)
     auto& result = _data.result;
     auto& i = _data.i;
 
-    auto cb = [&](std::shared_ptr<steady_timer> _timer, error_code& ec)
-    {
-        return [&, _timer](error_code _ec)
-        {
+    auto cb = [&](std::shared_ptr<steady_timer> _timer, error_code& ec) {
+        return [&, _timer](error_code _ec) {
             ec = _ec;
             on_switch(_data, context);
         };
@@ -53,8 +51,7 @@ void on_switch(SwitchData& _data, boost::asio::io_context& context)
 
     CORO_BEGIN(state);
 
-    [&]
-    {
+    [&] {
         auto accept = std::make_shared<steady_timer>(context, time);
         accept->async_wait(cb(accept, ec));
     }();
@@ -69,8 +66,7 @@ void on_switch(SwitchData& _data, boost::asio::io_context& context)
     for (i = 0; i < 3; ++i)
     {
         SPDLOG_INFO("{}", i);
-        [&]
-        {
+        [&] {
             auto read = std::make_shared<steady_timer>(context, time);
             read->async_wait(cb(read, ec));
         }();
@@ -83,8 +79,7 @@ void on_switch(SwitchData& _data, boost::asio::io_context& context)
         result += "2";
     }
 
-    [&]
-    {
+    [&] {
         auto write = std::make_shared<steady_timer>(context, time);
         write->async_wait(cb(write, ec));
     }();
