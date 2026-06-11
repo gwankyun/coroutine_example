@@ -10,6 +10,9 @@ import test.coroutine2;
 import test.context.continuation;
 import test.context.fiber;
 import test.fiber;
+import test.std_coroutine;
+import test.use_awaitable;
+import test.cobalt;
 
 using namespace std::chrono_literals;
 
@@ -45,6 +48,36 @@ TEST_CASE("fiber", "[async]")
     for (auto i = 0; i != 3; ++i)
     {
          REQUIRE(result[i] == std::to_string(i) + "rrrw");
+    }
+}
+
+TEST_CASE("std.coroutine", "[async]")
+{
+    auto result = test_std_coroutine();
+    REQUIRE(result.size() == 3);
+    for (auto i = 0; i != 3; ++i)
+    {
+        REQUIRE(result[i] == std::to_string(i) + "rrrw");
+    }
+}
+
+TEST_CASE("use_awaitable", "[async]")
+{
+    auto result = test_use_awaitable();
+    REQUIRE(result.size() == 3);
+    for (auto i = 0; i != 3; ++i)
+    {
+        REQUIRE(result[i] == std::to_string(i) + "rrrw");
+    }
+}
+
+TEST_CASE("cobalt", "[async]")
+{
+    auto result = test_cobalt();
+    REQUIRE(result.size() == 3);
+    for (auto i = 0; i != 3; ++i)
+    {
+        REQUIRE(result[i] == std::to_string(i) + "rrrw");
     }
 }
 

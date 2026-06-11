@@ -128,3 +128,79 @@ target_link_libraries(
     test_common
     Boost::fiber
 )
+
+add_library(test_std_coroutine)
+target_sources(
+  test_std_coroutine
+  PUBLIC # 對外接口單元需要公開
+    FILE_SET CXX_MODULES
+      BASE_DIRS
+        src # 模塊根目錄，讓編譯器找到模塊接口
+      FILES
+        src/test_std_coroutine.ixx # 模塊接口單元
+  PRIVATE
+    src/test_std_coroutine.cpp # 模塊實現單元
+)
+target_link_libraries(
+  test_std_coroutine
+  PRIVATE #
+    test_common
+)
+
+add_library(test_use_awaitable)
+target_sources(
+  test_use_awaitable
+  PUBLIC # 對外接口單元需要公開
+    FILE_SET CXX_MODULES
+      BASE_DIRS
+        src # 模塊根目錄，讓編譯器找到模塊接口
+      FILES
+        src/test_use_awaitable.ixx # 模塊接口單元
+  PRIVATE
+    src/test_use_awaitable.cpp # 模塊實現單元
+)
+target_link_libraries(
+  test_use_awaitable
+  PRIVATE #
+    test_common
+)
+
+add_library(test_cobalt)
+target_sources(
+  test_cobalt
+  PUBLIC # 對外接口單元需要公開
+    FILE_SET CXX_MODULES
+      BASE_DIRS
+        src # 模塊根目錄，讓編譯器找到模塊接口
+      FILES
+        src/test_cobalt.ixx # 模塊接口單元
+  PRIVATE
+    src/test_cobalt.cpp # 模塊實現單元
+)
+target_link_libraries(
+  test_cobalt
+  PRIVATE #
+    test_common
+    Boost::cobalt
+)
+
+#[[
+add_library(test_stdexec)
+target_sources(
+  test_stdexec
+  PUBLIC # 對外接口單元需要公開
+    FILE_SET CXX_MODULES
+      BASE_DIRS
+        src # 模塊根目錄，讓編譯器找到模塊接口
+      FILES
+        src/test_stdexec.ixx # 模塊接口單元
+  PRIVATE
+    src/test_stdexec.cpp # 模塊實現單元
+)
+target_link_libraries(
+  test_stdexec
+  PRIVATE #
+    test_common
+    STDEXEC::stdexec
+)
+]]

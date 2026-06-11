@@ -76,6 +76,7 @@ find_package(boost_scope REQUIRED CONFIG)
 find_package(boost_cobalt REQUIRED CONFIG)
 find_package(boost_asio CONFIG REQUIRED)
 find_package(boost_core CONFIG REQUIRED)
+find_package(stdexec CONFIG REQUIRED)
 
 find_package(asio CONFIG REQUIRED)
 
@@ -158,6 +159,9 @@ target_link_libraries(
     test_context_continuation
     test_context_fiber
     test_fiber
+    test_std_coroutine
+    test_use_awaitable
+    test_cobalt
 )
 target_compile_features(tests PRIVATE cxx_std_23)
 
