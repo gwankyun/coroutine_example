@@ -138,6 +138,7 @@ target_sources(
         src # 模塊根目錄，讓編譯器找到模塊接口
       FILES
         src/test_std_coroutine.ixx # 模塊接口單元
+        src/stdcoro.ixx
   PRIVATE
     src/test_std_coroutine.cpp # 模塊實現單元
 )
