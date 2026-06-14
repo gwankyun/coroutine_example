@@ -9,11 +9,11 @@ export namespace coro
 
     /// fire-and-forget 協程返回對象，僅作為啟動協程的「令牌」，調用者啓動後即失去控制權
     /*
-    struct detached_task
+    struct eager_task
     {
         struct promise_type
         {
-            detached_task get_return_object()
+            eager_task get_return_object()
             {
                 return {}; // 不持有 coroutine_handle，調用者無法控制協程
             }
@@ -43,13 +43,13 @@ export namespace coro
     /// 異常處理：
     ///   - 默認 unhandled_exception() → std::terminate()
     ///   - set_on_error() 可註冊自定義異常回調，避免 terminate
-    struct detached_task
+    struct eager_task
     {
         struct promise_type
         {
-            detached_task get_return_object()
+            eager_task get_return_object()
             {
-                return detached_task{std::coroutine_handle<promise_type>::from_promise(*this)};
+                return eager_task{std::coroutine_handle<promise_type>::from_promise(*this)};
             }
             /// suspend_never：協程創建後立即執行，不需外部 resume 啟動
             std::suspend_never initial_suspend()
@@ -87,13 +87,13 @@ export namespace coro
             std::function<void(std::exception_ptr)> on_error; ///< 自定義異常回調
         };
 
-        explicit detached_task(handle _h) : h(_h) {}
-        detached_task() = default;
-        detached_task(detached_task&& o) noexcept : h(std::exchange(o.h, nullptr)) {}
-        detached_task(const detached_task&) = delete;
-        detached_task& operator=(const detached_task&) = delete;
+        explicit eager_task(handle _h) : h(_h) {}
+        eager_task() = default;
+        eager_task(eager_task&& o) noexcept : h(std::exchange(o.h, nullptr)) {}
+        eager_task(const eager_task&) = delete;
+        eager_task& operator=(const eager_task&) = delete;
         /// 析構時若仍持有 handle，destroy() 銷燬協程幀（強行終止未完成的協程）
-        ~detached_task()
+        ~eager_task()
         {
             if (h)
                 h.destroy();
@@ -109,23 +109,40 @@ export namespace coro
         /// 調用後 h 置空，析構不會 destroy()
         void detach()
         {
+            // auto& p = get_promise();
+
+            // p.on_error = [](std::exception_ptr) { std::terminate(); };
+
+            // if (h)
+            //{
+            //     p.detached = true;
+            //     h = nullptr;
+            // }
+            detach([](std::exception_ptr) { std::terminate(); });
+        }
+
+        void detach(std::function<void(std::exception_ptr)> fn)
+        {
+            auto& p = get_promise();
+
+            p.on_error = std::move(fn);
+
             if (h)
             {
-                auto& p = get_promise();
                 p.detached = true;
                 h = nullptr;
             }
         }
 
         /// 註冊異常回調，替代默認的 std::terminate()
-        void set_on_error(std::function<void(std::exception_ptr)> fn)
-        {
-            if (h)
-            {
-                auto& p = get_promise();
-                p.on_error = std::move(fn);
-            }
-        }
+        //void set_on_error(std::function<void(std::exception_ptr)> fn)
+        //{
+        //    if (h)
+        //    {
+        //        auto& p = get_promise();
+        //        p.on_error = std::move(fn);
+        //    }
+        //}
 
       private:
         handle h{}; ///< 協程句柄，空表示已 detach 或默認構造
@@ -142,19 +159,19 @@ export namespace coro
     /// 生命周期規則：
     ///   - initial_suspend 返回 suspend_always：協程不自動執行，需外部 resume()
     ///   - final_suspend 返回 suspend_always：協程結束後幀保留，析構時 destroy()
-    ///   - 調用者必須保證 task 存活到協程 done()，否則析構強行銷燬未完成的幀
+    ///   - 調用者必須保證 lazy_task 存活到協程 done()，否則析構強行銷燬未完成的幀
     ///
     /// 異常處理：
     ///   - unhandled_exception() 捕獲異常存入 ex
     ///   - resume() 後檢查 ex，有異常則 rethrow 給調用者
-    struct task
+    struct lazy_task
     {
         struct promise_type
         {
             std::exception_ptr ex; ///< 暫存協程內拋出的異常
-            task get_return_object()
+            lazy_task get_return_object()
             {
-                return task{std::coroutine_handle<promise_type>::from_promise(*this)};
+                return lazy_task{std::coroutine_handle<promise_type>::from_promise(*this)};
             }
             /// suspend_always：協程創建後停在起點，等待 resume() 啟動
             std::suspend_always initial_suspend()
@@ -174,13 +191,13 @@ export namespace coro
             }
             void return_void() {}
         };
-        task() = default;
-        explicit task(handle _h) : h(_h) {}
-        task(task&& o) noexcept : h(std::exchange(o.h, nullptr)) {}
-        task(const task&) = delete;
-        task& operator=(const task&) = delete;
+        lazy_task() = default;
+        explicit lazy_task(handle _h) : h(_h) {}
+        lazy_task(lazy_task&& o) noexcept : h(std::exchange(o.h, nullptr)) {}
+        lazy_task(const lazy_task&) = delete;
+        lazy_task& operator=(const lazy_task&) = delete;
         /// 析構時若仍持有 handle，destroy() 銷燬協程幀
-        ~task()
+        ~lazy_task()
         {
             if (h)
                 h.destroy();

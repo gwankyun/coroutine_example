@@ -13,7 +13,7 @@ namespace asio = boost::asio;
 using asio::steady_timer;
 using boost::system::error_code;
 
-coro::detached_task connection_handle(steady_timer _connection, int _id, std::unordered_map<int, std::string>& _result)
+coro::eager_task connection_handle(steady_timer _connection, int _id, std::unordered_map<int, std::string>& _result)
 {
     error_code ec;
     auto time = 100ms;
@@ -54,7 +54,7 @@ coro::detached_task connection_handle(steady_timer _connection, int _id, std::un
     co_return;
 }
 
-coro::task accept_handle(asio::io_context& _context, std::unordered_map<int, std::string>& _result)
+coro::lazy_task accept_handle(asio::io_context& _context, std::unordered_map<int, std::string>& _result)
 {
     error_code ec;
     auto time = 100ms;
@@ -83,7 +83,21 @@ coro::task accept_handle(asio::io_context& _context, std::unordered_map<int, std
         steady_timer connection(_context);
 
         auto t = connection_handle(std::move(connection), i, _result); //.detach();
-        t.set_on_error([](std::exception_ptr ex) {
+        // t.set_on_error([](std::exception_ptr ex) {
+        //     try
+        //     {
+        //         std::rethrow_exception(ex);
+        //     }
+        //     catch (const std::exception& e)
+        //     {
+        //         SPDLOG_ERROR("{}", e.what());
+        //     }
+        //     catch (...)
+        //     {
+        //         SPDLOG_ERROR("unknown exception");
+        //     }
+        // });
+        t.detach([](std::exception_ptr ex) {
             try
             {
                 std::rethrow_exception(ex);
@@ -97,7 +111,6 @@ coro::task accept_handle(asio::io_context& _context, std::unordered_map<int, std
                 SPDLOG_ERROR("unknown exception");
             }
         });
-        t.detach();
     }
     co_return;
 }
