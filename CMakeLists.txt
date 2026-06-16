@@ -162,6 +162,7 @@ target_link_libraries(
     test_std_coroutine
     test_use_awaitable
     test_cobalt
+    test_stdexec
 )
 target_compile_features(tests PRIVATE cxx_std_23)
 

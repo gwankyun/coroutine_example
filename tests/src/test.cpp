@@ -13,6 +13,7 @@ import test.fiber;
 import test.std_coroutine;
 import test.use_awaitable;
 import test.cobalt;
+import test.stdexec;
 
 using namespace std::chrono_literals;
 
@@ -74,6 +75,16 @@ TEST_CASE("use_awaitable", "[async]")
 TEST_CASE("cobalt", "[async]")
 {
     auto result = test_cobalt();
+    REQUIRE(result.size() == 3);
+    for (auto i = 0; i != 3; ++i)
+    {
+        REQUIRE(result[i] == std::to_string(i) + "rrrw");
+    }
+}
+
+TEST_CASE("stdexec", "[async]")
+{
+    auto result = test_stdexec();
     REQUIRE(result.size() == 3);
     for (auto i = 0; i != 3; ++i)
     {

@@ -185,7 +185,6 @@ target_link_libraries(
     Boost::cobalt
 )
 
-#[[
 add_library(test_stdexec)
 target_sources(
   test_stdexec
@@ -203,5 +202,6 @@ target_link_libraries(
   PRIVATE #
     test_common
     STDEXEC::stdexec
+    STDEXEC::asioexec
+    STDEXEC::parallel_scheduler
 )
-]]
