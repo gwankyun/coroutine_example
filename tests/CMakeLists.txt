@@ -45,6 +45,22 @@ target_link_libraries(
     test_common
 )
 
+add_library(io_scheduler)
+target_sources(
+  io_scheduler
+  PUBLIC # 對外接口單元需要公開
+    FILE_SET CXX_MODULES
+      BASE_DIRS
+        src # 模塊根目錄，讓編譯器找到模塊接口
+      FILES
+        src/io_scheduler.ixx # 模塊接口單元
+)
+target_link_libraries(
+  io_scheduler
+  PRIVATE #
+    test_common
+)
+
 add_library(test_coroutine2)
 target_sources(
   test_coroutine2
@@ -63,6 +79,7 @@ target_link_libraries(
     test_common
     Boost::coroutine2
     Boost::scope
+    io_scheduler
 )
 
 add_library(test_context_continuation)
@@ -83,6 +100,7 @@ target_link_libraries(
     test_common
     Boost::context
     Boost::scope
+    io_scheduler
 )
 
 add_library(test_context_fiber)
@@ -103,6 +121,7 @@ target_link_libraries(
     test_common
     Boost::context
     Boost::scope
+    io_scheduler
 )
 
 add_library(test_fiber)

@@ -29,17 +29,32 @@ TEST_CASE("switch", "[async]")
 
 TEST_CASE("coroutine2", "[async]")
 {
-    REQUIRE(test_coroutine2() == "012223");
+    auto result = test_coroutine2();
+    REQUIRE(result.size() == 3);
+    for (auto i = 1; i != 4; ++i)
+    {
+        REQUIRE(result[i] == std::to_string(i) + "rrrw");
+    }
 }
 
 TEST_CASE("context.continuation", "[async]")
 {
-    REQUIRE(test_context_continuation() == "012223");
+    auto result = test_context_continuation();
+    REQUIRE(result.size() == 3);
+    for (auto i = 1; i != 4; ++i)
+    {
+        REQUIRE(result[i] == std::to_string(i) + "rrrw");
+    }
 }
 
 TEST_CASE("context.fiber", "[async]")
 {
-    REQUIRE(test_context_fiber() == "012223");
+    auto result = test_context_fiber();
+    REQUIRE(result.size() == 3);
+    for (auto i = 1; i != 4; ++i)
+    {
+        REQUIRE(result[i] == std::to_string(i) + "rrrw");
+    }
 }
 
 TEST_CASE("fiber", "[async]")

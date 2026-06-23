@@ -8,29 +8,99 @@
 module test.context.continuation;
 
 import std;
+import io_scheduler;
 
 using namespace std::chrono_literals;
 using boost::asio::steady_timer;
 using boost::system::error_code;
+namespace ctx = boost::context;
 
-std::string test_context_continuation()
+struct Context
 {
-    boost::asio::io_context context;
+    std::unordered_map<int, std::string> result;
+    /// awake_cont用於存儲需要喚醒的協程ID，當異步操作完成時，喚醒協程繼續執行。
+    std::queue<int> awake_cont;
+    /// coro_cont用於存儲協程ID和對應的協程對象，當需要喚醒協程時，從coro_cont中找到對應的協程對象。
+    std::unordered_map<int, std::unique_ptr<ctx::continuation>> coro_cont;
+};
 
-    std::string result = "0";
+ctx::continuation make_continuation(Context& _context, int _id, std::shared_ptr<steady_timer> _timer)
+{
+    auto continuation = [&, _id, _timer](ctx::continuation&& _sink) {
+        auto& awake_cont = _context.awake_cont;
+        auto& result = _context.result;
+        auto time = 100ms;
+        // 協程結束時自動喚醒，確保協程能夠正常退出。
+        auto awake = [&] { awake_cont.push(_id); };
+        BOOST_SCOPE_DEFER[&]
+        {
+            awake();
+        };
+
+        error_code e;
+
+        auto cb = [&](error_code& e) {
+            return [&](error_code _e) {
+                e = _e;
+                awake();
+            };
+        };
+
+        SPDLOG_INFO("");
+        auto& timer = *_timer;
+        timer.expires_after(time);
+        timer.async_wait(cb(e));
+        // 協程暫停，等待異步操作完成後再繼續執行。
+        _sink = _sink.resume();
+        if (e)
+        {
+            SPDLOG_ERROR("{}", e.message());
+            return std::move(_sink);
+        }
+        result[_id] = std::to_string(_id);
+
+        SPDLOG_INFO("");
+        // 支持循環內的異步操作，協程可以在循環內多次暫停和繼續執行，直到循環結束。
+        for (int i = 0; i < 3; ++i)
+        {
+            timer.async_wait(cb(e));
+            _sink = _sink.resume();
+            if (e)
+            {
+                SPDLOG_ERROR("{}", e.message());
+                return std::move(_sink);
+            }
+            result[_id] += "r";
+        }
+
+        SPDLOG_INFO("");
+        timer.async_wait(cb(e));
+        _sink = _sink.resume();
+        if (e)
+        {
+            SPDLOG_ERROR("{}", e.message());
+            return std::move(_sink);
+        }
+        result[_id] += "w";
+        return std::move(_sink);
+    };
+    return ctx::callcc(continuation);
+};
+
+std::unordered_map<int, std::string> test_context_continuation()
+{
+    Context context;
+    auto& result = context.result;
 
     auto time = 100ms;
 
-    // awake_cont用於存儲需要喚醒的協程ID和對應的錯誤碼，當異步操作完成時，將結果傳回協程並喚醒協程繼續執行。
-    std::queue<int> awake_cont;
-    namespace ctx = boost::context;
-    // coro_cont用於存儲協程ID和對應的協程對象，當需要喚醒協程時，從coro_cont中找到對應的協程對象並傳回異步操作的結果。
-    std::unordered_map<int, std::unique_ptr<ctx::continuation>> coro_cont;
+    auto& awake_cont = context.awake_cont;
+    auto& coro_cont = context.coro_cont;
 
-    auto make_continuation = [&](int _id) {
-        auto continuation = [&, _id](ctx::continuation&& _sink) {
+    auto make_accept = [&](std::shared_ptr<steady_timer> _acceptor) {
+        auto continuation = [&, _acceptor](ctx::continuation&& _sink) {
             // 協程結束時自動喚醒，確保協程能夠正常退出。
-            auto awake = [&] { awake_cont.push(_id); };
+            auto awake = [&] { awake_cont.push(0); };
             BOOST_SCOPE_DEFER[&]
             {
                 awake();
@@ -46,77 +116,38 @@ std::string test_context_continuation()
             };
 
             SPDLOG_INFO("");
-            steady_timer accept(context, time);
-            accept.async_wait(cb(e));
-            // 協程暫停，等待異步操作完成後再繼續執行。
-            _sink = _sink.resume();
-            if (e)
-            {
-                SPDLOG_ERROR("{}", e.message());
-                return std::move(_sink);
-            }
-            result += "1";
+            auto& acceptor = *_acceptor;
 
-            SPDLOG_INFO("");
-            // 支持循環內的異步操作，協程可以在循環內多次暫停和繼續執行，直到循環結束。
-            for (int i = 0; i < 3; ++i)
+            for (int id = 1; id < 4; ++id)
             {
-                steady_timer read(context, time);
-                read.async_wait(cb(e));
+                acceptor.expires_after(time);
+                acceptor.async_wait(cb(e));
                 _sink = _sink.resume();
+
                 if (e)
                 {
                     SPDLOG_ERROR("{}", e.message());
                     return std::move(_sink);
                 }
-                result += "2";
-            }
 
-            SPDLOG_INFO("");
-            steady_timer write(context, time);
-            write.async_wait(cb(e));
-            _sink = _sink.resume();
-            if (e)
-            {
-                SPDLOG_ERROR("{}", e.message());
-                return std::move(_sink);
+                auto timer = std::make_shared<steady_timer>(acceptor.get_executor());
+                coro_cont[id] = std::make_unique<ctx::continuation>(make_continuation(context, id, timer));
             }
-            result += "3";
             return std::move(_sink);
         };
         return ctx::callcc(continuation);
     };
 
+    boost::asio::io_context io_ctx;
+
+    /// 對稱協程可將調度算法放到子協程中，子協程可以互相喚醒
     auto main_continuation = [&] {
-        for (int id = 0; id < 1; ++id)
         {
-            coro_cont[id] = std::make_unique<ctx::continuation>(make_continuation(id));
+            auto timer = std::make_shared<steady_timer>(io_ctx);
+            coro_cont[0] = std::make_unique<ctx::continuation>(make_accept(timer));
         }
 
-        // 調度算法：每次運行io_context後，檢查是否有協程需要喚醒，如果有則喚醒一個協程，直到所有協程都完成。
-        while (!coro_cont.empty())
-        {
-            context.run();
-            if (!awake_cont.empty())
-            {
-                auto id = awake_cont.front();
-                awake_cont.pop();
-
-                auto iter = coro_cont.find(id);
-                if (iter != coro_cont.end())
-                {
-                    auto& continuation = *iter->second;
-                    // 判斷協程是否已經完成，完成就移除
-                    if (!continuation)
-                    {
-                        coro_cont.erase(id);
-                        continue;
-                    }
-                    // 將異步操作的結果傳回協程，讓協程繼續執行
-                    continuation = continuation.resume();
-                }
-            }
-        }
+        run_scheduler<ctx::continuation>(io_ctx, coro_cont, awake_cont, [](auto& c) { c = c.resume(); });
     };
 
     auto main = std::make_unique<ctx::continuation>(ctx::callcc([&](ctx::continuation&& _sink) {
