@@ -23,6 +23,11 @@
             "name": "msvc",
             "configurePreset": "msvc",
             "configuration": "Debug"
+        },
+        {
+            "name": "tests",
+            "inherits": "msvc",
+            "targets": [ "tests" ]
         }
     ],
     "testPresets": [
@@ -43,6 +48,23 @@
                 {
                     "type": "build",
                     "name": "msvc"
+                },
+                {
+                    "type": "test",
+                    "name": "msvc"
+                }
+            ]
+        },
+        {
+            "name": "tests",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "msvc"
+                },
+                {
+                    "type": "build",
+                    "name": "tests"
                 },
                 {
                     "type": "test",
