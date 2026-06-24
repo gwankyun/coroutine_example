@@ -166,6 +166,19 @@ target_link_libraries(
 )
 target_compile_features(tests PRIVATE cxx_std_23)
 
+add_custom_command(
+  TARGET tests
+  POST_BUILD
+  COMMAND
+    ${CMAKE_COMMAND}
+    # gersemi: off
+    -D apps="$<TARGET_FILE:tests>"
+    -D dirs="${CMAKE_BINARY_DIR}/tests/$<CONFIG>"
+    # gersemi: on
+    -P "${CMAKE_SOURCE_DIR}/cmake/bundle.cmake"
+  COMMENT ""
+)
+
 enable_testing()
 include(Catch)
 catch_discover_tests(tests)

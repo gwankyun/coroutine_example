@@ -1,7 +1,9 @@
 ﻿module;
 
+#include <shared_api.h>
+
 export module test.callback;
 
 import std;
 
-export std::string test_callback();
+export SHARED_API std::string test_callback();

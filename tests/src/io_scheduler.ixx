@@ -1,5 +1,6 @@
 ﻿module;
 
+#include <shared_api.h>
 #include <boost/asio.hpp>
 
 export module io_scheduler;
@@ -24,7 +25,8 @@ export {
     /// @param resume     喚醒函數，接收 unique_ptr<Coro>&，
     ///                   調用者需根據協程類型提供正確的 resume 操作
     template <typename Coro, typename ResumeFn>
-    void run_scheduler(boost::asio::io_context& io_ctx, coro_map<Coro>& coro_cont, std::queue<int>& awake_cont,
+    SHARED_API void run_scheduler(boost::asio::io_context& io_ctx, coro_map<Coro>& coro_cont,
+                                 std::queue<int>& awake_cont,
                        ResumeFn resume)
     {
         while (!coro_cont.empty())
