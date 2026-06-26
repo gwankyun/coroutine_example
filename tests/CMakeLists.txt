@@ -49,7 +49,7 @@ target_link_libraries(
     shared_api
 )
 
-add_library(io_scheduler SHARED)
+add_library(io_scheduler)
 target_sources(
   io_scheduler
   PUBLIC # 對外接口單元需要公開

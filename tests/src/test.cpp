@@ -19,12 +19,23 @@ using namespace std::chrono_literals;
 
 TEST_CASE("callback", "[async]")
 {
-    REQUIRE(test_callback() == "012223");
+    auto result = test_callback();
+    REQUIRE(result.size() == 3);
+    for (auto i = 1; i != 4; ++i)
+    {
+        REQUIRE(result[i] == std::to_string(i) + "rrrw");
+    }
 }
 
 TEST_CASE("switch", "[async]")
 {
-    REQUIRE(test_switch_coro() == "012223");
+    //REQUIRE(test_switch_coro() == "012223");
+    auto result = test_switch_coro();
+    REQUIRE(result.size() == 3);
+    for (auto i = 1; i != 4; ++i)
+    {
+        REQUIRE(result[i] == std::to_string(i) + "rrrw");
+    }
 }
 
 TEST_CASE("coroutine2", "[async]")

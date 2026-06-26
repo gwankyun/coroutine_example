@@ -6,4 +6,4 @@ export module test.callback;
 
 import std;
 
-export SHARED_API std::string test_callback();
+export SHARED_API std::unordered_map<int, std::string> test_callback();
