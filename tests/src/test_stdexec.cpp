@@ -37,8 +37,20 @@ exec::task<void> read_loop(steady_timer& timer, std::unordered_map<int, std::str
 // 連接處理
 exec::task<void> connection_handle(steady_timer timer, int id, std::unordered_map<int, std::string>& result)
 {
+    timer.expires_after(100ms);
+    {
+        auto [ec] = co_await timer.async_wait(asio::as_tuple(exec::asio::use_sender));
+        if (ec)
+        {
+            SPDLOG_ERROR("{}", ec.message());
+            co_return;
+        }
+    }
+
     result[id] = std::to_string(id);
+
     co_await read_loop(timer, result, id);
+
     timer.expires_after(100ms);
     auto [ec] = co_await timer.async_wait(asio::as_tuple(exec::asio::use_sender));
     if (ec)

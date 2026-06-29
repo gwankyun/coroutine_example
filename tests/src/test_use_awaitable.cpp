@@ -18,6 +18,17 @@ asio::awaitable<void> connection_handle(steady_timer _connection, int _id,
 {
     auto executor = co_await asio::this_coro::executor; // 獲取當前執行器
 
+    _connection.expires_after(100ms);
+    {
+        auto [ec] = co_await _connection.async_wait(asio::as_tuple(asio::use_awaitable));
+
+        if (ec)
+        {
+            SPDLOG_ERROR("{}", ec.message());
+            co_return;
+        }
+    }
+
     _result[_id] = std::to_string(_id);
 
     for (int i = 0; i < 3; ++i)

@@ -63,6 +63,7 @@ ctx::continuation make_continuation(Context& _context, int _id, std::shared_ptr<
         // 支持循環內的異步操作，協程可以在循環內多次暫停和繼續執行，直到循環結束。
         for (int i = 0; i < 3; ++i)
         {
+            timer.expires_after(time);
             timer.async_wait(cb(e));
             _sink = _sink.resume();
             if (e)
@@ -74,6 +75,7 @@ ctx::continuation make_continuation(Context& _context, int _id, std::shared_ptr<
         }
 
         SPDLOG_INFO("");
+        timer.expires_after(time);
         timer.async_wait(cb(e));
         _sink = _sink.resume();
         if (e)

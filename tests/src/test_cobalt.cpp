@@ -19,6 +19,17 @@ cobalt::promise<void> connection_handle(steady_timer connection, int id, std::un
 {
     auto executor = co_await cobalt::this_coro::executor;
 
+    connection.expires_after(100ms);
+    {
+        auto [ec] = co_await connection.async_wait(asio::as_tuple(cobalt::use_op));
+
+        if (ec)
+        {
+            SPDLOG_ERROR("{}", ec.message());
+            co_return;
+        }
+    }
+
     result[id] = std::to_string(id);
 
     for (int i = 0; i < 3; ++i)
@@ -49,12 +60,12 @@ cobalt::promise<void> accept_handle(std::unordered_map<int, std::string>& result
 {
     auto executor = co_await cobalt::this_coro::executor;
 
-    steady_timer accept(executor);
+    steady_timer acceptor(executor);
 
     for (auto i = 0; i != 3; ++i)
     {
-        accept.expires_after(100ms);
-        auto [ec] = co_await accept.async_wait(asio::as_tuple(cobalt::use_op));
+        acceptor.expires_after(100ms);
+        auto [ec] = co_await acceptor.async_wait(asio::as_tuple(cobalt::use_op));
 
         if (ec)
         {

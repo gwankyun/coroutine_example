@@ -30,13 +30,23 @@ std::unordered_map<int, std::string> test_fiber()
         fibers::fiber fiber([&, id] {
             error_code ec;
 
+            steady_timer connection(*context);
+            connection.expires_after(time);
+            connection.async_wait(fibers::asio::yield[ec]);
+            if (ec)
+            {
+                SPDLOG_ERROR("{}", ec.message());
+                return;
+            }
+
             result[id] = std::to_string(id);
 
             for (int i = 0; i < 3; ++i)
             {
-                steady_timer read(*context, time);
+                // steady_timer read(*context, time);
+                connection.expires_after(time);
                 // 可以自動切走切回
-                read.async_wait(fibers::asio::yield[ec]);
+                connection.async_wait(fibers::asio::yield[ec]);
                 if (ec)
                 {
                     SPDLOG_ERROR("{}", ec.message());
@@ -45,8 +55,9 @@ std::unordered_map<int, std::string> test_fiber()
                 result[id] += "r";
             }
 
-            steady_timer write(*context, time);
-            write.async_wait(fibers::asio::yield[ec]);
+            // steady_timer write(*context, time);
+            connection.expires_after(time);
+            connection.async_wait(fibers::asio::yield[ec]);
             if (ec)
             {
                 SPDLOG_ERROR("{}", ec.message());
@@ -62,12 +73,15 @@ std::unordered_map<int, std::string> test_fiber()
     fibers::fiber main_fiber([&] {
         std::vector<fibers::fiber> fiber_cont;
 
+        // steady_timer accept(*context, time);
+        steady_timer acceptor(*context);
+
         for (auto i = 0; i != 3; ++i)
         {
             error_code ec;
 
-            steady_timer accept(*context, time);
-            accept.async_wait(fibers::asio::yield[ec]);
+            acceptor.expires_after(time);
+            acceptor.async_wait(fibers::asio::yield[ec]);
             if (ec)
             {
                 SPDLOG_ERROR("{}", ec.message());

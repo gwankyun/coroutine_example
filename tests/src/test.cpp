@@ -29,7 +29,6 @@ TEST_CASE("callback", "[async]")
 
 TEST_CASE("switch", "[async]")
 {
-    //REQUIRE(test_switch_coro() == "012223");
     auto result = test_switch_coro();
     REQUIRE(result.size() == 3);
     for (auto i = 1; i != 4; ++i)
