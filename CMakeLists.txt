@@ -166,18 +166,20 @@ target_link_libraries(
 )
 target_compile_features(tests PRIVATE cxx_std_23)
 
-add_custom_command(
-  TARGET tests
-  POST_BUILD
-  COMMAND
-    ${CMAKE_COMMAND}
-    # gersemi: off
+if(test_lib_type STREQUAL "SHARED")
+  add_custom_command(
+    TARGET tests
+    POST_BUILD
+    COMMAND
+      ${CMAKE_COMMAND}
+      # gersemi: off
     -D apps="$<TARGET_FILE:tests>"
     -D dirs="${CMAKE_BINARY_DIR}/tests/$<CONFIG>"
-    # gersemi: on
-    -P "${CMAKE_SOURCE_DIR}/cmake/bundle.cmake"
-  COMMENT ""
-)
+      # gersemi: on
+      -P "${CMAKE_SOURCE_DIR}/cmake/bundle.cmake"
+    COMMENT ""
+  )
+endif()
 
 enable_testing()
 include(Catch)

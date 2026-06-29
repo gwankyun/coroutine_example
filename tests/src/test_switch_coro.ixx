@@ -6,4 +6,4 @@ export module test.switch_coro;
 
 import std;
 
-export SHARED_API std::string test_switch_coro();
+export SHARED_API std::unordered_map<int, std::string> test_switch_coro();

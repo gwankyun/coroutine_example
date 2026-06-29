@@ -17,7 +17,10 @@ target_sources(
 )
 target_compile_definitions(shared_api INTERFACE SHARED_EXPORT)
 
-add_library(test_callback SHARED)
+set(test_lib_type STATIC)
+# set(test_lib_type SHARED)
+
+add_library(test_callback ${test_lib_type})
 target_sources(
   test_callback
   PUBLIC # 對外接口單元需要公開
@@ -33,7 +36,7 @@ target_link_libraries(
     shared_api
 )
 
-add_library(test_switch_coro SHARED)
+add_library(test_switch_coro ${test_lib_type})
 target_sources(
   test_switch_coro
   PUBLIC # 對外接口單元需要公開
@@ -64,7 +67,7 @@ target_link_libraries(
     shared_api
 )
 
-add_library(test_coroutine2 SHARED)
+add_library(test_coroutine2 ${test_lib_type})
 target_sources(
   test_coroutine2
   PUBLIC # 對外接口單元需要公開
@@ -83,7 +86,7 @@ target_link_libraries(
     shared_api
 )
 
-add_library(test_context_continuation SHARED)
+add_library(test_context_continuation ${test_lib_type})
 target_sources(
   test_context_continuation
   PUBLIC # 對外接口單元需要公開
@@ -102,7 +105,7 @@ target_link_libraries(
     shared_api
 )
 
-add_library(test_context_fiber SHARED)
+add_library(test_context_fiber ${test_lib_type})
 target_sources(
   test_context_fiber
   PUBLIC # 對外接口單元需要公開
@@ -121,7 +124,7 @@ target_link_libraries(
     shared_api
 )
 
-add_library(test_fiber SHARED)
+add_library(test_fiber ${test_lib_type})
 target_sources(
   test_fiber
   PUBLIC # 對外接口單元需要公開
@@ -140,7 +143,7 @@ target_link_libraries(
     shared_api
 )
 
-add_library(test_std_coroutine SHARED)
+add_library(test_std_coroutine ${test_lib_type})
 target_sources(
   test_std_coroutine
   PUBLIC # 對外接口單元需要公開
@@ -158,7 +161,7 @@ target_link_libraries(
     shared_api
 )
 
-add_library(test_use_awaitable SHARED)
+add_library(test_use_awaitable ${test_lib_type})
 target_sources(
   test_use_awaitable
   PUBLIC # 對外接口單元需要公開
@@ -174,7 +177,7 @@ target_link_libraries(
     shared_api
 )
 
-add_library(test_cobalt SHARED)
+add_library(test_cobalt ${test_lib_type})
 target_sources(
   test_cobalt
   PUBLIC # 對外接口單元需要公開
@@ -191,7 +194,7 @@ target_link_libraries(
     shared_api
 )
 
-add_library(test_stdexec SHARED)
+add_library(test_stdexec ${test_lib_type})
 target_sources(
   test_stdexec
   PUBLIC # 對外接口單元需要公開

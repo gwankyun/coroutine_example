@@ -26,85 +26,136 @@ using boost::system::error_code;
 
 #define CORO_END() }
 
-struct SwitchData
+struct ConnectionData
 {
-    int state;
-    std::string result;
-    int i;
-    error_code ec;
+    int state = 0;
+    std::unordered_map<int, std::string>* result = nullptr;
+    int i = 0;
+    std::unique_ptr<steady_timer> connection; // = nullptr;
 };
 
-void on_switch(SwitchData& _data, boost::asio::io_context& context)
+struct AcceptorData
 {
+    int state = 0;
+    std::unordered_map<int, std::string>* result = nullptr;
+    int i = 0;
+    std::unique_ptr<steady_timer> acceptor; // = nullptr;
+};
+
+std::unordered_map<int, std::unique_ptr<ConnectionData>> connection_map;
+
+void on_connect(error_code ec, ConnectionData* _data)
+{
+    //SPDLOG_INFO("on_connect: state={}, i={}", _data.state, _data.i);
     auto time = 100ms;
-    auto& ec = _data.ec;
-    auto& state = _data.state;
-    auto& result = _data.result;
-    auto& i = _data.i;
+    auto& connection = _data->connection;
+    auto result = _data->result;
 
-    auto cb = [&](std::shared_ptr<steady_timer> _timer, error_code& ec) {
-        return [&, _timer](error_code _ec) {
-            ec = _ec;
-            on_switch(_data, context);
-        };
-    };
+    auto cb = [_data]() { return [_data](error_code _ec) { on_connect(_ec, _data); }; };
 
-    CORO_BEGIN(state);
+    CORO_BEGIN(_data->state);
 
-    [&] {
-        auto accept = std::make_shared<steady_timer>(context, time);
-        accept->async_wait(cb(accept, ec));
-    }();
-    CORO_YIELD(state);
+    connection->expires_after(time);
+    connection->async_wait(cb());
+    CORO_YIELD(_data->state);
+
     if (ec)
     {
         SPDLOG_ERROR("{}", ec.message());
         return;
     }
-    result += "1";
+    //*result += "1";
+    (*result)[_data->i] += std::to_string(_data->i);
 
-    for (i = 0; i < 3; ++i)
+    // SPDLOG_INFO("");
+
+    for (_data->i = 0; _data->i < 3; ++_data->i)
     {
-        SPDLOG_INFO("{}", i);
-        [&] {
-            auto read = std::make_shared<steady_timer>(context, time);
-            read->async_wait(cb(read, ec));
-        }();
-        CORO_YIELD(_data.state);
+        SPDLOG_INFO("{}", _data->i);
+        connection->expires_after(time);
+        connection->async_wait(cb());
+        CORO_YIELD(_data->state);
         if (ec)
         {
             SPDLOG_ERROR("{}", ec.message());
             return;
         }
-        result += "2";
+        (*result)[_data->i] += "r";
     }
 
-    [&] {
-        auto write = std::make_shared<steady_timer>(context, time);
-        write->async_wait(cb(write, ec));
-    }();
-    CORO_YIELD(state);
+    connection->expires_after(time);
+    connection->async_wait(cb());
+    CORO_YIELD(_data->state);
+
     if (ec)
     {
         SPDLOG_ERROR("{}", ec.message());
         return;
     }
-    result += "3";
+    (*result)[_data->i] += "w";
 
     CORO_END();
 }
 
-std::string test_switch_coro()
+void on_accept(error_code ec, AcceptorData* _data)
 {
+    // SPDLOG_INFO("on_connect: state={}, i={}", _data->state, _data->i);
+    auto time = 100ms;
+    auto& acceptor = _data->acceptor;
+    auto result = _data->result;
+     //auto state = _data->state;
+
+    auto cb = [_data]() { return [_data](error_code _ec) { on_accept(_ec, _data); }; };
+
+    CORO_BEGIN(_data->state);
+
+    for (_data->i = 1; _data->i < 3; ++_data->i)
+    {
+        SPDLOG_INFO("{}", _data->i);
+        acceptor->expires_after(time);
+        acceptor->async_wait(cb());
+        CORO_YIELD(_data->state);
+        if (ec)
+        {
+            SPDLOG_ERROR("{}", ec.message());
+            return;
+        }
+
+        auto conn = std::make_unique<ConnectionData>();
+        conn->connection = std::make_unique<steady_timer>(_data->acceptor->get_executor());
+        conn->i = _data->i;
+        conn->result = _data->result;
+        connection_map[_data->i] = std::move(conn);
+        on_connect(error_code{}, connection_map[_data->i].get());
+
+        SPDLOG_INFO("connection: {}", _data->i);
+        SPDLOG_INFO("connection size: {}", connection_map.size());
+
+    }
+
+    CORO_END();
+}
+
+std::unordered_map<int, std::string> test_switch_coro()
+{
+    SPDLOG_INFO("");
     boost::asio::io_context context;
 
-    std::string result = "0";
-    int state = 0;
+    std::unordered_map<int, std::string> result; // = "0";
 
-    SwitchData data{state, result, 0, error_code()};
+    AcceptorData data;
+    data.result = &result;
+    data.acceptor = std::make_unique<steady_timer>(context);
 
-    on_switch(data, context);
+    SPDLOG_INFO("");
+    on_accept(error_code{}, &data);
 
     context.run();
-    return data.result;
+
+    for (auto& i : result)
+    {
+        SPDLOG_INFO("result[{}]: {}", i.first, i.second);
+    }
+
+    return result;
 }
