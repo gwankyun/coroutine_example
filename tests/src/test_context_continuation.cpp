@@ -11,7 +11,8 @@ import std;
 import io_scheduler;
 
 using namespace std::chrono_literals;
-using boost::asio::steady_timer;
+namespace asio = boost::asio;
+using asio::steady_timer;
 using boost::system::error_code;
 namespace ctx = boost::context;
 
@@ -22,14 +23,21 @@ struct Context
     std::queue<int> awake_cont;
     /// coro_cont用於存儲協程ID和對應的協程對象，當需要喚醒協程時，從coro_cont中找到對應的協程對象。
     std::unordered_map<int, std::unique_ptr<ctx::continuation>> coro_cont;
+    std::unordered_map<int, std::unique_ptr<steady_timer>> timer_cont;
 };
 
-ctx::continuation make_continuation(Context& _context, int _id, std::shared_ptr<steady_timer> _timer)
+void resume(ctx::continuation& _fiber)
 {
-    auto continuation = [&, _id, _timer](ctx::continuation&& _sink) {
+    _fiber = _fiber.resume();
+}
+
+auto g_time = 100ms;
+
+ctx::continuation make_continuation(Context& _context, int _id, steady_timer& _timer)
+{
+    auto continuation = [&, _id](ctx::continuation&& _sink) {
         auto& awake_cont = _context.awake_cont;
         auto& result = _context.result;
-        auto time = 100ms;
         // 協程結束時自動喚醒，確保協程能夠正常退出。
         auto awake = [&] { awake_cont.push(_id); };
         BOOST_SCOPE_DEFER[&]
@@ -47,11 +55,11 @@ ctx::continuation make_continuation(Context& _context, int _id, std::shared_ptr<
         };
 
         SPDLOG_INFO("");
-        auto& timer = *_timer;
-        timer.expires_after(time);
+        auto& timer = _timer;
+        timer.expires_after(g_time);
         timer.async_wait(cb(e));
         // 協程暫停，等待異步操作完成後再繼續執行。
-        _sink = _sink.resume();
+        resume(_sink);
         if (e)
         {
             SPDLOG_ERROR("{}", e.message());
@@ -63,9 +71,9 @@ ctx::continuation make_continuation(Context& _context, int _id, std::shared_ptr<
         // 支持循環內的異步操作，協程可以在循環內多次暫停和繼續執行，直到循環結束。
         for (int i = 0; i < 3; ++i)
         {
-            timer.expires_after(time);
+            timer.expires_after(g_time);
             timer.async_wait(cb(e));
-            _sink = _sink.resume();
+            resume(_sink);
             if (e)
             {
                 SPDLOG_ERROR("{}", e.message());
@@ -75,15 +83,18 @@ ctx::continuation make_continuation(Context& _context, int _id, std::shared_ptr<
         }
 
         SPDLOG_INFO("");
-        timer.expires_after(time);
+        timer.expires_after(g_time);
         timer.async_wait(cb(e));
-        _sink = _sink.resume();
+        resume(_sink);
         if (e)
         {
             SPDLOG_ERROR("{}", e.message());
             return std::move(_sink);
         }
         result[_id] += "w";
+
+        asio::post(timer.get_executor(), [&, _id] { _context.timer_cont.erase(_id); });
+
         return std::move(_sink);
     };
     return ctx::callcc(continuation);
@@ -91,6 +102,7 @@ ctx::continuation make_continuation(Context& _context, int _id, std::shared_ptr<
 
 std::unordered_map<int, std::string> test_context_continuation()
 {
+    asio::io_context io_ctx;
     Context context;
     auto& result = context.result;
 
@@ -99,8 +111,8 @@ std::unordered_map<int, std::string> test_context_continuation()
     auto& awake_cont = context.awake_cont;
     auto& coro_cont = context.coro_cont;
 
-    auto make_accept = [&](std::shared_ptr<steady_timer> _acceptor) {
-        auto continuation = [&, _acceptor](ctx::continuation&& _sink) {
+    auto make_accept = [&](steady_timer& _acceptor) {
+        auto continuation = [&](ctx::continuation&& _sink) {
             // 協程結束時自動喚醒，確保協程能夠正常退出。
             auto awake = [&] { awake_cont.push(0); };
             BOOST_SCOPE_DEFER[&]
@@ -118,13 +130,13 @@ std::unordered_map<int, std::string> test_context_continuation()
             };
 
             SPDLOG_INFO("");
-            auto& acceptor = *_acceptor;
+            auto& acceptor = _acceptor;
 
             for (int id = 1; id < 4; ++id)
             {
-                acceptor.expires_after(time);
+                acceptor.expires_after(g_time);
                 acceptor.async_wait(cb(e));
-                _sink = _sink.resume();
+                resume(_sink);
 
                 if (e)
                 {
@@ -132,7 +144,8 @@ std::unordered_map<int, std::string> test_context_continuation()
                     return std::move(_sink);
                 }
 
-                auto timer = std::make_shared<steady_timer>(acceptor.get_executor());
+                context.timer_cont[id] = std::make_unique<steady_timer>(acceptor.get_executor());
+                auto& timer = *context.timer_cont[id];
                 coro_cont[id] = std::make_unique<ctx::continuation>(make_continuation(context, id, timer));
             }
             return std::move(_sink);
@@ -140,16 +153,13 @@ std::unordered_map<int, std::string> test_context_continuation()
         return ctx::callcc(continuation);
     };
 
-    boost::asio::io_context io_ctx;
-
     /// 對稱協程可將調度算法放到子協程中，子協程可以互相喚醒
     auto main_continuation = [&] {
-        {
-            auto timer = std::make_shared<steady_timer>(io_ctx);
-            coro_cont[0] = std::make_unique<ctx::continuation>(make_accept(timer));
-        }
+        steady_timer acceptor(io_ctx);
+        // 急切協程，創建後自動運行
+        coro_cont[0] = std::make_unique<ctx::continuation>(make_accept(acceptor));
 
-        run_scheduler<ctx::continuation>(io_ctx, coro_cont, awake_cont, [](auto& c) { c = c.resume(); });
+        run_scheduler<ctx::continuation>(io_ctx, coro_cont, awake_cont, [](auto& _c) { resume(_c); });
     };
 
     auto main = std::make_unique<ctx::continuation>(ctx::callcc([&](ctx::continuation&& _sink) {

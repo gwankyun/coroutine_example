@@ -1,4 +1,4 @@
-﻿set(CMAKE_FOLDER test)
+set(CMAKE_FOLDER test)
 
 add_library(test_common INTERFACE)
 target_link_libraries(
@@ -18,16 +18,17 @@ target_sources(
 target_compile_definitions(shared_api INTERFACE SHARED_EXPORT)
 
 set(test_lib_type STATIC)
-# set(test_lib_type SHARED)
 
-add_library(test_callback ${test_lib_type})
+# === 模块库（提供測試函數的實現） ===
+
+add_library(test_callback )
 target_sources(
   test_callback
-  PUBLIC # 對外接口單元需要公開
+  PUBLIC
     FILE_SET CXX_MODULES
-      BASE_DIRS src # 模塊根目錄，讓編譯器找到模塊接口
-      FILES src/test_callback.ixx # 模塊接口單元
-  PRIVATE src/test_callback.cpp # 模塊實現單元
+      BASE_DIRS src
+      FILES src/test_callback.ixx
+  PRIVATE src/test_callback.cpp
 )
 target_link_libraries(
   test_callback
@@ -36,14 +37,14 @@ target_link_libraries(
     shared_api
 )
 
-add_library(test_switch_coro ${test_lib_type})
+add_library(test_switch_coro )
 target_sources(
   test_switch_coro
-  PUBLIC # 對外接口單元需要公開
+  PUBLIC
     FILE_SET CXX_MODULES
-      BASE_DIRS src # 模塊根目錄，讓編譯器找到模塊接口
-      FILES src/test_switch_coro.ixx # 模塊接口單元
-  PRIVATE src/test_switch_coro.cpp # 模塊實現單元
+      BASE_DIRS src
+      FILES src/test_switch_coro.ixx
+  PRIVATE src/test_switch_coro.cpp
 )
 target_link_libraries(
   test_switch_coro
@@ -55,10 +56,10 @@ target_link_libraries(
 add_library(io_scheduler)
 target_sources(
   io_scheduler
-  PUBLIC # 對外接口單元需要公開
+  PUBLIC
     FILE_SET CXX_MODULES
-      BASE_DIRS src # 模塊根目錄，讓編譯器找到模塊接口
-      FILES src/io_scheduler.ixx # 模塊接口單元
+      BASE_DIRS src
+      FILES src/io_scheduler.ixx
 )
 target_link_libraries(
   io_scheduler
@@ -67,14 +68,14 @@ target_link_libraries(
     shared_api
 )
 
-add_library(test_coroutine2 ${test_lib_type})
+add_library(test_coroutine2 )
 target_sources(
   test_coroutine2
-  PUBLIC # 對外接口單元需要公開
+  PUBLIC
     FILE_SET CXX_MODULES
-      BASE_DIRS src # 模塊根目錄，讓編譯器找到模塊接口
-      FILES src/test_coroutine2.ixx # 模塊接口單元
-  PRIVATE src/test_coroutine2.cpp # 模塊實現單元
+      BASE_DIRS src
+      FILES src/test_coroutine2.ixx
+  PRIVATE src/test_coroutine2.cpp
 )
 target_link_libraries(
   test_coroutine2
@@ -86,14 +87,14 @@ target_link_libraries(
     shared_api
 )
 
-add_library(test_context_continuation ${test_lib_type})
+add_library(test_context_continuation )
 target_sources(
   test_context_continuation
-  PUBLIC # 對外接口單元需要公開
+  PUBLIC
     FILE_SET CXX_MODULES
-      BASE_DIRS src # 模塊根目錄，讓編譯器找到模塊接口
-      FILES src/test_context_continuation.ixx # 模塊接口單元
-  PRIVATE src/test_context_continuation.cpp # 模塊實現單元
+      BASE_DIRS src
+      FILES src/test_context_continuation.ixx
+  PRIVATE src/test_context_continuation.cpp
 )
 target_link_libraries(
   test_context_continuation
@@ -105,14 +106,14 @@ target_link_libraries(
     shared_api
 )
 
-add_library(test_context_fiber ${test_lib_type})
+add_library(test_context_fiber )
 target_sources(
   test_context_fiber
-  PUBLIC # 對外接口單元需要公開
+  PUBLIC
     FILE_SET CXX_MODULES
-      BASE_DIRS src # 模塊根目錄，讓編譯器找到模塊接口
-      FILES src/test_context_fiber.ixx # 模塊接口單元
-  PRIVATE src/test_context_fiber.cpp # 模塊實現單元
+      BASE_DIRS src
+      FILES src/test_context_fiber.ixx
+  PRIVATE src/test_context_fiber.cpp
 )
 target_link_libraries(
   test_context_fiber
@@ -124,16 +125,16 @@ target_link_libraries(
     shared_api
 )
 
-add_library(test_fiber ${test_lib_type})
+add_library(test_fiber )
 target_sources(
   test_fiber
-  PUBLIC # 對外接口單元需要公開
+  PUBLIC
     FILE_SET CXX_MODULES
-      BASE_DIRS src # 模塊根目錄，讓編譯器找到模塊接口
-      FILES src/test_fiber.ixx # 模塊接口單元
-  PRIVATE src/test_fiber.cpp # 模塊實現單元
+      BASE_DIRS src
+      FILES src/test_fiber.ixx
+  PRIVATE src/test_fiber.cpp
   PRIVATE #
-    FILE_SET HEADERS BASE_DIRS src # FILES src/fiber/asio/round_robin.hpp
+    FILE_SET HEADERS BASE_DIRS src
 )
 target_link_libraries(
   test_fiber
@@ -143,16 +144,16 @@ target_link_libraries(
     shared_api
 )
 
-add_library(test_std_coroutine ${test_lib_type})
+add_library(test_std_coroutine )
 target_sources(
   test_std_coroutine
-  PUBLIC # 對外接口單元需要公開
+  PUBLIC
     FILE_SET CXX_MODULES
-      BASE_DIRS src # 模塊根目錄，讓編譯器找到模塊接口
+      BASE_DIRS src
       FILES
-        src/test_std_coroutine.ixx # 模塊接口單元
+        src/test_std_coroutine.ixx
         src/stdcoro.ixx
-  PRIVATE src/test_std_coroutine.cpp # 模塊實現單元
+  PRIVATE src/test_std_coroutine.cpp
 )
 target_link_libraries(
   test_std_coroutine
@@ -161,14 +162,14 @@ target_link_libraries(
     shared_api
 )
 
-add_library(test_use_awaitable ${test_lib_type})
+add_library(test_use_awaitable )
 target_sources(
   test_use_awaitable
-  PUBLIC # 對外接口單元需要公開
+  PUBLIC
     FILE_SET CXX_MODULES
-      BASE_DIRS src # 模塊根目錄，讓編譯器找到模塊接口
-      FILES src/test_use_awaitable.ixx # 模塊接口單元
-  PRIVATE src/test_use_awaitable.cpp # 模塊實現單元
+      BASE_DIRS src
+      FILES src/test_use_awaitable.ixx
+  PRIVATE src/test_use_awaitable.cpp
 )
 target_link_libraries(
   test_use_awaitable
@@ -177,14 +178,14 @@ target_link_libraries(
     shared_api
 )
 
-add_library(test_cobalt ${test_lib_type})
+add_library(test_cobalt )
 target_sources(
   test_cobalt
-  PUBLIC # 對外接口單元需要公開
+  PUBLIC
     FILE_SET CXX_MODULES
-      BASE_DIRS src # 模塊根目錄，讓編譯器找到模塊接口
-      FILES src/test_cobalt.ixx # 模塊接口單元
-  PRIVATE src/test_cobalt.cpp # 模塊實現單元
+      BASE_DIRS src
+      FILES src/test_cobalt.ixx
+  PRIVATE src/test_cobalt.cpp
 )
 target_link_libraries(
   test_cobalt
@@ -194,14 +195,14 @@ target_link_libraries(
     shared_api
 )
 
-add_library(test_stdexec ${test_lib_type})
+add_library(test_stdexec )
 target_sources(
   test_stdexec
-  PUBLIC # 對外接口單元需要公開
+  PUBLIC
     FILE_SET CXX_MODULES
-      BASE_DIRS src # 模塊根目錄，讓編譯器找到模塊接口
-      FILES src/test_stdexec.ixx # 模塊接口單元
-  PRIVATE src/test_stdexec.cpp # 模塊實現單元
+      BASE_DIRS src
+      FILES src/test_stdexec.ixx
+  PRIVATE src/test_stdexec.cpp
 )
 target_link_libraries(
   test_stdexec
@@ -212,3 +213,31 @@ target_link_libraries(
     STDEXEC::parallel_scheduler
     shared_api
 )
+
+# === 獨立測試 exe ===
+
+function(add_test_exe TEST_NAME MODULE_LIB)
+  add_executable(run_${TEST_NAME})
+  target_sources(run_${TEST_NAME} PRIVATE src/main/test_${TEST_NAME}_main.cpp)
+  target_link_libraries(
+    run_${TEST_NAME}
+    PRIVATE #
+      Catch2::Catch2
+      spdlog::spdlog
+      ${MODULE_LIB}
+  )
+  target_compile_features(run_${TEST_NAME} PRIVATE cxx_std_23)
+  add_test(NAME ${TEST_NAME} COMMAND run_${TEST_NAME})
+  set_tests_properties(${TEST_NAME} PROPERTIES ENVIRONMENT "SPDLOG_LEVEL=OFF")
+endfunction()
+
+add_test_exe(callback test_callback)
+add_test_exe(switch_coro test_switch_coro)
+add_test_exe(coroutine2 test_coroutine2)
+add_test_exe(context_continuation test_context_continuation)
+add_test_exe(context_fiber test_context_fiber)
+add_test_exe(fiber test_fiber)
+add_test_exe(std_coroutine test_std_coroutine)
+add_test_exe(use_awaitable test_use_awaitable)
+add_test_exe(cobalt test_cobalt)
+add_test_exe(stdexec test_stdexec)

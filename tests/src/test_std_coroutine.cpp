@@ -13,10 +13,11 @@ namespace asio = boost::asio;
 using asio::steady_timer;
 using boost::system::error_code;
 
+auto g_time = 100ms;
+
 coro::eager_task connection_handle(steady_timer _connection, int _id, std::unordered_map<int, std::string>& _result)
 {
     error_code ec;
-    auto time = 100ms;
 
     auto cb = [&](error_code& ec, coro::handle _h) {
         return [&, _h](error_code _ec) {
@@ -25,7 +26,7 @@ coro::eager_task connection_handle(steady_timer _connection, int _id, std::unord
         };
     };
 
-    _connection.expires_after(time);
+    _connection.expires_after(g_time);
     co_await coro::suspend_async([&](auto _h) { _connection.async_wait(cb(ec, _h)); });
     if (ec)
     {
@@ -37,7 +38,7 @@ coro::eager_task connection_handle(steady_timer _connection, int _id, std::unord
 
     for (int i = 0; i < 3; ++i)
     {
-        _connection.expires_after(time);
+        _connection.expires_after(g_time);
         co_await coro::suspend_async([&](auto _h) { _connection.async_wait(cb(ec, _h)); });
         if (ec)
         {
@@ -48,7 +49,7 @@ coro::eager_task connection_handle(steady_timer _connection, int _id, std::unord
         _result[_id] += "r";
     }
 
-    _connection.expires_after(time);
+    _connection.expires_after(g_time);
     co_await coro::suspend_async([&](auto _h) { _connection.async_wait(cb(ec, _h)); });
     if (ec)
     {
@@ -63,7 +64,6 @@ coro::eager_task connection_handle(steady_timer _connection, int _id, std::unord
 coro::lazy_task accept_handle(asio::io_context& _context, std::unordered_map<int, std::string>& _result)
 {
     error_code ec;
-    auto time = 100ms;
 
     auto cb = [&](error_code& ec, coro::handle _h) {
         return [&, _h](error_code _ec) {
@@ -76,7 +76,7 @@ coro::lazy_task accept_handle(asio::io_context& _context, std::unordered_map<int
 
     for (auto i = 0; i != 3; ++i)
     {
-        acceptor.expires_after(time);
+        acceptor.expires_after(g_time);
 
         co_await coro::suspend_async([&](auto _h) { acceptor.async_wait(cb(ec, _h)); });
 
@@ -109,19 +109,19 @@ coro::lazy_task accept_handle(asio::io_context& _context, std::unordered_map<int
 
 std::unordered_map<int, std::string> test_std_coroutine()
 {
-    asio::io_context context;
+    asio::io_context io_ctx;
 
     std::unordered_map<int, std::string> result;
 
     try
     {
-        auto t = accept_handle(context, result);
+        auto t = accept_handle(io_ctx, result);
         t.resume();
 
         do
         {
             SPDLOG_INFO("t: {}", t.done());
-            context.run_one();
+            io_ctx.run_one();
         } while (!t.done());
     }
     catch (const std::exception& e)
@@ -129,7 +129,7 @@ std::unordered_map<int, std::string> test_std_coroutine()
         SPDLOG_ERROR("{}", e.what());
     }
 
-    context.run();
+    io_ctx.run();
 
     return result;
 }

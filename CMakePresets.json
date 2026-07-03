@@ -27,7 +27,18 @@
         {
             "name": "tests",
             "inherits": "msvc",
-            "targets": [ "tests" ]
+            "targets": [
+                "run_callback",
+                "run_switch_coro",
+                "run_coroutine2",
+                "run_context_continuation",
+                "run_context_fiber",
+                "run_fiber",
+                "run_std_coroutine",
+                "run_use_awaitable",
+                "run_cobalt",
+                "run_stdexec"
+            ]
         }
     ],
     "testPresets": [
@@ -35,6 +46,10 @@
             "name": "msvc",
             "configurePreset": "msvc",
             "configuration": "Debug"
+        },
+        {
+            "name": "tests",
+            "inherits": "msvc"
         }
     ],
     "workflowPresets": [
@@ -68,7 +83,7 @@
                 },
                 {
                     "type": "test",
-                    "name": "msvc"
+                    "name": "tests"
                 }
             ]
         }

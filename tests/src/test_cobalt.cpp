@@ -14,12 +14,14 @@ namespace asio = boost::asio;
 using asio::steady_timer;
 using boost::system::error_code;
 
+auto g_time = 100ms;
+
 // cobalt::promise 是 eager 协程（立即执行），类似原来的 task
 cobalt::promise<void> connection_handle(steady_timer connection, int id, std::unordered_map<int, std::string>& result)
 {
     auto executor = co_await cobalt::this_coro::executor;
 
-    connection.expires_after(100ms);
+    connection.expires_after(g_time);
     {
         auto [ec] = co_await connection.async_wait(asio::as_tuple(cobalt::use_op));
 
@@ -34,7 +36,7 @@ cobalt::promise<void> connection_handle(steady_timer connection, int id, std::un
 
     for (int i = 0; i < 3; ++i)
     {
-        connection.expires_after(100ms);
+        connection.expires_after(g_time);
         auto [ec] = co_await connection.async_wait(asio::as_tuple(cobalt::use_op));
 
         if (ec)
@@ -45,7 +47,7 @@ cobalt::promise<void> connection_handle(steady_timer connection, int id, std::un
         result[id] += "r";
     }
 
-    connection.expires_after(100ms);
+    connection.expires_after(g_time);
     auto [ec] = co_await connection.async_wait(asio::as_tuple(cobalt::use_op));
 
     if (ec)
@@ -64,7 +66,7 @@ cobalt::promise<void> accept_handle(std::unordered_map<int, std::string>& result
 
     for (auto i = 0; i != 3; ++i)
     {
-        acceptor.expires_after(100ms);
+        acceptor.expires_after(g_time);
         auto [ec] = co_await acceptor.async_wait(asio::as_tuple(cobalt::use_op));
 
         if (ec)
@@ -83,10 +85,10 @@ cobalt::promise<void> accept_handle(std::unordered_map<int, std::string>& result
 
 std::unordered_map<int, std::string> test_cobalt()
 {
-    asio::io_context context;
-    cobalt::this_thread::set_executor(context.get_executor());
+    asio::io_context io_ctx;
+    cobalt::this_thread::set_executor(io_ctx.get_executor());
     std::unordered_map<int, std::string> result;
     accept_handle(result).detach();
-    context.run();
+    io_ctx.run();
     return result;
 }

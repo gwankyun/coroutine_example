@@ -1,4 +1,4 @@
-﻿# cmake最低版本
+# cmake最低版本
 cmake_minimum_required(VERSION 4.2)
 
 # 項目名
@@ -144,47 +144,9 @@ add_executable(main)
 target_sources(main PRIVATE src/main.cpp)
 target_link_libraries(main PRIVATE common_required Catch2::Catch2)
 
-add_subdirectory(tests)
-
-add_executable(tests)
-target_sources(tests PRIVATE tests/src/test.cpp)
-target_link_libraries(
-  tests
-  PRIVATE #
-    Catch2::Catch2
-    spdlog::spdlog
-    test_callback
-    test_switch_coro
-    test_coroutine2
-    test_context_continuation
-    test_context_fiber
-    test_fiber
-    test_std_coroutine
-    test_use_awaitable
-    test_cobalt
-    test_stdexec
-)
-target_compile_features(tests PRIVATE cxx_std_23)
-
-if(test_lib_type STREQUAL "SHARED")
-  add_custom_command(
-    TARGET tests
-    POST_BUILD
-    COMMAND
-      ${CMAKE_COMMAND}
-      # gersemi: off
-    -D apps="$<TARGET_FILE:tests>"
-    -D dirs="${CMAKE_BINARY_DIR}/tests/$<CONFIG>"
-      # gersemi: on
-      -P "${CMAKE_SOURCE_DIR}/cmake/bundle.cmake"
-    COMMENT ""
-  )
-endif()
-
 enable_testing()
-include(Catch)
-catch_discover_tests(tests)
-set_tests_properties(${CTEST_TESTS} PROPERTIES ENVIRONMENT "SPDLOG_LEVEL=OFF")
+
+add_subdirectory(tests)
 
 add_subdirectory(module)
 add_subdirectory(asio)

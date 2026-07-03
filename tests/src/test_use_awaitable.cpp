@@ -12,13 +12,15 @@ namespace asio = boost::asio;
 using asio::steady_timer;
 using boost::system::error_code;
 
+auto g_time = 100ms;
+
 // 1. 協程函數：用 asio::awaitable<T> 替代自定義 task
 asio::awaitable<void> connection_handle(steady_timer _connection, int _id,
                                         std::unordered_map<int, std::string>& _result)
 {
     auto executor = co_await asio::this_coro::executor; // 獲取當前執行器
 
-    _connection.expires_after(100ms);
+    _connection.expires_after(g_time);
     {
         auto [ec] = co_await _connection.async_wait(asio::as_tuple(asio::use_awaitable));
 
@@ -33,7 +35,7 @@ asio::awaitable<void> connection_handle(steady_timer _connection, int _id,
 
     for (int i = 0; i < 3; ++i)
     {
-        _connection.expires_after(100ms);
+        _connection.expires_after(g_time);
 
         // 2. 用 co_await + use_awaitable 替代手動 async_resume
         auto [ec] = co_await _connection.async_wait(asio::as_tuple(asio::use_awaitable));
@@ -46,7 +48,7 @@ asio::awaitable<void> connection_handle(steady_timer _connection, int _id,
         _result[_id] += "r";
     }
 
-    _connection.expires_after(100ms);
+    _connection.expires_after(g_time);
     auto [ec] = co_await _connection.async_wait(asio::as_tuple(asio::use_awaitable));
 
     if (ec)
@@ -65,7 +67,7 @@ asio::awaitable<void> accept_handle(std::unordered_map<int, std::string>& _resul
 
     for (auto i = 0; i != 3; ++i)
     {
-        acceptor.expires_after(100ms);
+        acceptor.expires_after(g_time);
         auto [ec] = co_await acceptor.async_wait(asio::as_tuple(asio::use_awaitable));
 
         if (ec)
@@ -84,11 +86,11 @@ asio::awaitable<void> accept_handle(std::unordered_map<int, std::string>& _resul
 // 4. 入口：co_spawn 啟動頂層協程
 std::unordered_map<int, std::string> test_use_awaitable()
 {
-    asio::io_context context;
+    asio::io_context io_ctx;
     std::unordered_map<int, std::string> result;
 
-    asio::co_spawn(context, accept_handle(result), asio::detached);
+    asio::co_spawn(io_ctx, accept_handle(result), asio::detached);
 
-    context.run();
+    io_ctx.run();
     return result;
 }
