@@ -1,4 +1,4 @@
-# cmake最低版本
+﻿# cmake最低版本
 cmake_minimum_required(VERSION 4.2)
 
 # 項目名
@@ -144,6 +144,7 @@ add_executable(main)
 target_sources(main PRIVATE src/main.cpp)
 target_link_libraries(main PRIVATE common_required Catch2::Catch2)
 
+include(Catch) # catch_discover_tests
 enable_testing()
 
 add_subdirectory(tests)

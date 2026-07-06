@@ -1,4 +1,4 @@
-set(CMAKE_FOLDER test)
+﻿set(CMAKE_FOLDER test)
 
 add_library(test_common INTERFACE)
 target_link_libraries(
@@ -19,7 +19,7 @@ target_compile_definitions(shared_api INTERFACE SHARED_EXPORT)
 
 set(test_lib_type STATIC)
 
-# === 模块库（提供測試函數的實現） ===
+# === 模塊庫（提供測試函數的實現） ===
 
 add_library(test_callback )
 target_sources(
@@ -227,8 +227,7 @@ function(add_test_exe TEST_NAME MODULE_LIB)
       ${MODULE_LIB}
   )
   target_compile_features(run_${TEST_NAME} PRIVATE cxx_std_23)
-  add_test(NAME ${TEST_NAME} COMMAND run_${TEST_NAME})
-  set_tests_properties(${TEST_NAME} PROPERTIES ENVIRONMENT "SPDLOG_LEVEL=OFF")
+  catch_discover_tests(run_${TEST_NAME})
 endfunction()
 
 add_test_exe(callback test_callback)
@@ -241,3 +240,5 @@ add_test_exe(std_coroutine test_std_coroutine)
 add_test_exe(use_awaitable test_use_awaitable)
 add_test_exe(cobalt test_cobalt)
 add_test_exe(stdexec test_stdexec)
+
+set_tests_properties(${CTEST_TESTS} PROPERTIES ENVIRONMENT "SPDLOG_LEVEL=OFF")
