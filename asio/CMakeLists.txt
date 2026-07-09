@@ -79,7 +79,8 @@ target_compile_definitions(spdlog_interface
 )
 target_link_libraries(spdlog_interface
   INTERFACE
-    $<IF:$<BOOL:${USE_SPDLOG_MODULE}>,spdlog::module,spdlog::spdlog>
+    # $<IF:$<BOOL:${USE_SPDLOG_MODULE}>,spdlog::module,spdlog::spdlog>
+    spdlog_module
 )
 
 add_library(asio_interface INTERFACE)
@@ -104,7 +105,8 @@ target_compile_definitions(third_module
 target_link_libraries(third_module
   INTERFACE
     Catch2::module
-    spdlog::module
+    # spdlog::module
+    spdlog_module
 )
 
 add_library(cxx_std_interface INTERFACE)
@@ -119,7 +121,8 @@ target_link_libraries(asio_callback
   PRIVATE
     Catch2::module::option
     # spdlog_interface
-    spdlog::module::option
+    # spdlog::module::option
+    spdlog_module
     asio_interface
     cxx_std_interface
 )
@@ -133,7 +136,8 @@ target_link_libraries(asio_switch
   PRIVATE
     Catch2::module::option
     # spdlog_interface
-    spdlog::module::option
+    # spdlog::module::option
+    spdlog_module
     asio_interface
     cxx_std_interface
 )
@@ -148,7 +152,8 @@ target_link_libraries(asio_coroutine2
   PRIVATE
     Catch2::module::option
     # spdlog_interface
-    spdlog::module::option
+    # spdlog::module::option
+    spdlog_module
     Boost::context::module::option
     asio_interface
     Boost::scope::module::option
@@ -165,7 +170,8 @@ target_link_libraries(asio_continuatioin
   PRIVATE
     Catch2::module::option
     # spdlog_interface
-    spdlog::module::option
+    # spdlog::module::option
+    spdlog_module
     asio_interface
     Boost::scope::module::option
     Boost::context::module::option
@@ -181,7 +187,8 @@ target_link_libraries(asio_context_fiber
   PRIVATE
     Catch2::module::option
     # spdlog_interface
-    spdlog::module::option
+    # spdlog::module::option
+    spdlog_module
     asio_interface
     Boost::scope::module::option
     Boost::context::module::option
@@ -196,7 +203,8 @@ target_sources(asio_fiber PRIVATE
 target_link_libraries(asio_fiber PRIVATE
   Catch2::module::option
   # spdlog_interface
-  spdlog::module::option
+  # spdlog::module::option
+  spdlog_module
   asio_interface
   Boost::scope::module::option
   Boost::fiber::module::option

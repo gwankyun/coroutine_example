@@ -2,8 +2,9 @@
 cmake_minimum_required(VERSION 4.2)
 
 # 項目名
-set(project coroutine_example)
-project(${project})
+project(coroutine_example
+  VERSION 1.0.0
+)
 
 include(CMakePrintHelpers) # cmake_print_variables
 
@@ -92,6 +93,8 @@ if(use_cxx_23)
 endif()
 
 find_package(nlohmann_json CONFIG REQUIRED)
+
+add_subdirectory(spdlog_module)
 
 add_library(common_required INTERFACE)
 target_include_directories(common_required INTERFACE include)

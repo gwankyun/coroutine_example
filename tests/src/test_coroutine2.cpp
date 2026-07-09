@@ -3,12 +3,13 @@
 #include <boost/asio.hpp>
 #include <boost/coroutine2/all.hpp>
 #include <boost/scope/defer.hpp>
-#include <spdlog/spdlog.h>
+#include <spdlog.hpp>
 
 module test.coroutine2;
 
 import std;
 import io_scheduler;
+import spdlog;
 
 using namespace std::chrono_literals;
 namespace asio = boost::asio;

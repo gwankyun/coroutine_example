@@ -2,11 +2,12 @@
 
 #include <boost/asio.hpp>
 #include <boost/cobalt.hpp>
-#include <spdlog/spdlog.h>
+#include <spdlog.hpp>
 
 module test.cobalt;
 
 import std;
+import spdlog;
 
 namespace cobalt = boost::cobalt;
 using namespace std::chrono_literals;

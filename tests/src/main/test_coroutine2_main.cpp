@@ -1,8 +1,9 @@
 #include <catch2/../catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
-#include <spdlog/spdlog.h>
+#include <spdlog.hpp>
 
 import test.coroutine2;
+import spdlog;
 
 TEST_CASE("coroutine2", "[async]")
 {

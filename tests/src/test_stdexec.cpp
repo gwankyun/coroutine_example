@@ -5,12 +5,13 @@
 #include <exec/async_scope.hpp>
 #include <exec/static_thread_pool.hpp>
 #include <exec/task.hpp>
-#include <spdlog/spdlog.h>
+#include <spdlog.hpp>
 #include <stdexec/execution.hpp>
 
 module test.stdexec;
 
 import std;
+import spdlog;
 
 namespace ex = stdexec;
 using namespace std::chrono_literals;

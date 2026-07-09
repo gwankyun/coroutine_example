@@ -1,11 +1,20 @@
 ﻿set(CMAKE_FOLDER test)
 
 add_library(test_common INTERFACE)
+target_sources(
+    test_common
+    INTERFACE
+      FILE_SET HEADERS
+        BASE_DIRS src
+        FILES
+          src/spdlog.hpp
+)
 target_link_libraries(
   test_common
   INTERFACE #
     Boost::asio
-    spdlog::spdlog
+    # spdlog::spdlog
+    spdlog_module
 )
 target_compile_features(test_common INTERFACE cxx_std_23)
 
@@ -223,8 +232,10 @@ function(add_test_exe TEST_NAME MODULE_LIB)
     run_${TEST_NAME}
     PRIVATE #
       Catch2::Catch2
-      spdlog::spdlog
+      # spdlog::spdlog
+      spdlog_module
       ${MODULE_LIB}
+      test_common
   )
   target_compile_features(run_${TEST_NAME} PRIVATE cxx_std_23)
   catch_discover_tests(run_${TEST_NAME})

@@ -1,4 +1,4 @@
-﻿#include <spdlog/spdlog.h>
+﻿#include <spdlog.hpp>
 
 #include <catch2/../catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>

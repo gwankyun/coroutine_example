@@ -1,4 +1,5 @@
-﻿add_library(spdlog_module)
+﻿#[[
+add_library(spdlog_module)
 target_sources(spdlog_module
   PRIVATE
     spdlog/spdlog.h
@@ -23,3 +24,4 @@ target_link_libraries(spdlog_module_interface
     spdlog::spdlog
 )
 add_library(spdlog::module::option ALIAS spdlog_module_interface)
+#]]

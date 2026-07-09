@@ -3,12 +3,13 @@
 #include <boost/asio.hpp>
 #include <boost/context/fiber.hpp>
 #include <boost/scope/defer.hpp>
-#include <spdlog/spdlog.h>
+#include <spdlog.hpp>
 
 module test.context.fiber;
 
 import std;
 import io_scheduler;
+import spdlog;
 
 using namespace std::chrono_literals;
 namespace asio = boost::asio;

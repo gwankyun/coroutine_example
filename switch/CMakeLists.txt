@@ -25,7 +25,8 @@ target_sources(switch_server
 target_link_libraries(switch_server
   PRIVATE
     ${switch_required}
-    spdlog::module::option
+    # spdlog::module::option
+    spdlog_module
 )
 set_target_properties(switch_server PROPERTIES FOLDER ${switch})
 target_compile_features(switch_server PRIVATE cxx_std_23)

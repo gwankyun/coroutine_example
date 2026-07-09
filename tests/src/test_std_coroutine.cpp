@@ -1,12 +1,13 @@
 ﻿module;
 
 #include <boost/asio.hpp>
-#include <spdlog/spdlog.h>
+#include <spdlog.hpp>
 
 module test.std_coroutine;
 
 import std;
 import stdcoro;
+import spdlog;
 
 using namespace std::chrono_literals;
 namespace asio = boost::asio;

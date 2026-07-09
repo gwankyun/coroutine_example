@@ -2,7 +2,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/fiber/all.hpp>
-#include <spdlog/spdlog.h>
+#include <spdlog.hpp>
 
 // 引入適配asio的調度器
 #include "fiber/asio/round_robin.hpp"
@@ -10,6 +10,7 @@
 module test.fiber;
 
 import std;
+import spdlog;
 
 using namespace std::chrono_literals;
 namespace asio = boost::asio;
